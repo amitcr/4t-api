@@ -115,6 +115,7 @@ class CouponAutoRecharge implements CommandInterface
                                 AffiliateModel::where('affiliate_id', $coupon->affiliate_id)->decrement('unused_credits', $amount);
                             }
 
+                            $coupon = CouponModel::with(['user', 'affiliate', 'company', 'coupondetail'])->find($coupon->coupon_id);
                             // use $coupon->user->user_email
                             Mail::send($coupon->user->user_email, 'Your Prepaid Code at FourTemperaments Has Been Auto-Recharged', 'coupon-auto-recharged', ['coupon' => $coupon, 'transaction' => $transaction, 'paymentMethod' => $paymentMethod, 'paymentIntent' => $paymentIntent]);
                         }
