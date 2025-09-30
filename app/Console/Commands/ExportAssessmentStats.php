@@ -37,16 +37,18 @@ class ExportAssessmentStats implements CommandInterface
         $query =  AssessmentModel::query()
             ->join('affcp_coupons_tracking as ac', "mytemp_assessments.assessment_id", '=', 'ac.assessment_id')
             ->selectRaw("
-                DATE({$tablesPrefix}mytemp_assessments.modified_at) as stat_date,
-                {$statusCountQuery}
+                DATE({$tablesPrefix}mytemp_assessments.modified_at) as stat_date, 
+                {$statusCountQuery} 
             ")
             ->whereIn('ac.coupon_id', $couponIds);
 
         if ($mode == 'daily') {
             // Get yesterday’s stats
             $yesterday = Carbon::now()->subDays('2')->toDateString();
+
             $query->whereDate("mytemp_assessments.modified_at", $yesterday);
         }
+        
         // echo $query->groupBy('stat_date')->orderBy('stat_date')->toSql(); die;
         $stats = $query->groupBy('stat_date')->orderBy('stat_date')->get()->toArray();
 
