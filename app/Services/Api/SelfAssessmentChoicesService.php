@@ -18,9 +18,9 @@ class SelfAssessmentChoicesService extends BaseHttpService
         return $this->getQueryUrl($this->endpoint);
     } 
 
-    public function getById($id)
+    public function getById($id, $query = [])
     {
-        return $this->get("{$this->endpoint}/{$id}");
+        return $this->get("{$this->endpoint}/{$id}", $query);
     }
 
     public function create(array $data)
