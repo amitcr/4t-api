@@ -21,6 +21,7 @@ class SESMailer implements MailerInterface
                 'key'    => $this->config['key'],
                 'secret' => $this->config['secret'],
             ],
+            'suppress_php_deprecation_warning' => true,
         ]);
     }
 
