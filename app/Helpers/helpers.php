@@ -231,3 +231,30 @@ if(!function_exists('get_assessment_chart_image')){
         return false;
     }
 }
+
+if(!function_exists('get_assessment_participant_name')){
+    function get_assessment_participant_name($assessment, $nameType = 'full'){
+        if(empty($assessment))
+            return '';
+
+        $participantName = !empty($assessment->first_name) ? $assessment->first_name.' '.$assessment->last_name : (isset($assessment->user) ? $assessment->user_display_name : '');
+        $participantFirstName = !empty($assessment->first_name) ? $assessment->first_name : '';
+        if(empty($participantName)){
+            $participantFirstName = UserMetaModel::where(['user_id' => $assessment->user_id, 'meta_key' => 'first_name'])->value('meta_value');
+            $participantLastName = UserMetaModel::where(['user_id' => $assessment->user_id, 'meta_key' => 'last_name'])->value('meta_value');
+
+            if(!empty($participantFirstName)){
+                $participantName = $participantFirstName;
+                if(!empty($participantLastName)){
+                    $participantName .= ' '.$participantLastName;
+                }
+            }
+        }
+        if($nameType == 'first')
+            return $participantFirstName;
+        else if($nameType == 'last')
+            return $participantLastName;
+        else
+            return $participantName;
+    }
+}
