@@ -116,9 +116,9 @@
                                     <tbody>
                                         <tr>
                                             <td align="left" style="font-family: Helvetica, sans-serif; font-size: 16px; vertical-align: top; padding-bottom: 5px;" valign="top">
-                                                <h3 style="margin-bottom: 16px;font-family: Helvetica, sans-serif;  font-weight: bold;font-size: 20px;text-align:left;margin: 0;padding-bottom: 15px; color: #001c40;">Hello <?=$coupon->user->display_name?></h3>
+                                                <h3 style="margin-bottom: 16px;font-family: Helvetica, sans-serif;  font-weight: bold;font-size: 20px;text-align:left;margin: 0;padding-bottom: 15px; color: #001c40;">A New Manager's Report Is Available</h3>
                                                 <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
-                                                    A new report is available for <strong><?=$participantName?></strong>. A download link is provided below for easy access.
+                                                    A new report is available for <strong><?=ucfirst($participantName)?></strong>. A download link is provided below for easy access.
                                                 </p>
                                                 <p>
                                                     <?php if(file_exists($personalFilePath)){ ?>

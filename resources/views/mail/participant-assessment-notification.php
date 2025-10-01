@@ -116,7 +116,7 @@
                                     <tbody>
                                         <tr>
                                             <td align="left" style="font-family: Helvetica, sans-serif; font-size: 16px; vertical-align: top; padding-bottom: 5px;" valign="top">
-                                                <h3 style="margin-bottom: 16px;font-family: Helvetica, sans-serif;  font-weight: bold;font-size: 20px;text-align:left;margin: 0;padding-bottom: 15px; color: #001c40;">Hello <?=$assessment->user ? $assessment->user->display_name : $assessment->first_name?></h3>
+                                                <h3 style="margin-bottom: 16px;font-family: Helvetica, sans-serif;  font-weight: bold;font-size: 20px;text-align:left;margin: 0;padding-bottom: 15px; color: #001c40;">Hello <?=$participantName?></h3>
                                                 <h4 style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: bold; margin: 0; margin-bottom: 16px;">Your MyTemperament<sup>TM</sup> Personal Report Is Available.</h4>
                                                 <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">Congratulations! You’ve completed your assessment and your personal report is now available. You are on your way to a better you. Review your report to learn more about your natural strengths and how you can be the most effective, both personally and professionally.<br/></p>
                                                 <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">A download link is provided below for easy access.<br/><br/></p>

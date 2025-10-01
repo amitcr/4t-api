@@ -118,8 +118,6 @@ if($trd_content=="Choleric"){
 	$Top_trd = "C";
 }
 
-$participantFirstName = trim(ucfirst($assessment->first_name));
-
 ?>
 
 <style>

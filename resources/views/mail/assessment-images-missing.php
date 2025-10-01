@@ -200,7 +200,7 @@
                                                 align="center">
                                                 <p
                                                     style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
-                                                    <?=trim($assessment->first_name.' '.$assessment->last_name)?></p>
+                                                    <?=trim(get_assessment_participant_name($assessment))?></p>
                                             </td>
                                             <td valign="top"
                                                 style="padding:12px 8px;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3"
