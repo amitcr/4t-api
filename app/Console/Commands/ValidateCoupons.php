@@ -58,7 +58,7 @@ class ValidateCoupons implements CommandInterface
 
             
             if($unused_charges != 0){
-                $notes = $notes ?? 'Credits Reversed to your account after '.$coupon->coupon_code.' coupon code has been expired.';
+                $notes = $notes ?: 'Credits Reversed to your account after '.$coupon->coupon_code.' coupon code has been expired.';
                 $transaction_array = [
                     'amount'    =>  $unused_charges,
                     'transaction_type'  =>  'reversal',
