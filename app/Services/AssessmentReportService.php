@@ -189,7 +189,7 @@ class AssessmentReportService
                 if($holdReport == false){
                     $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $assessment->user->user_email;
                     if(!empty($sendTo)){
-                        Mail::send($sendTo, 'Your DISC Assessment Profile', 'participant-assessment-notification', ['assessment' => $assessment, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName, "participantName" => $participantName]);
+                        Mail::send($sendTo, 'Your MyTemperament Assessment Profile', 'participant-assessment-notification', ['assessment' => $assessment, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName, "participantName" => $participantName]);
                     }
                 }
 
