@@ -121,7 +121,7 @@
                                                     Thank you for your purchase of the MyTemperament<sup>TM</sup>
                                                     Assessment. Your receipt is below.
                                                 </p>
-                                                <?php if(!empty($assessmentCoupons) && $assessmentCoupons[0]->coupon->hold_status != 1){ ?>
+                                                <?php if(!isset($holdReport) || $holdReport == false){ ?>
                                                     <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">To download your report, click on the button below.</p>
                                                 <?php } ?>
                                             </td>
@@ -129,7 +129,7 @@
                                     </tbody>
                                 </table>
 
-                                <?php if(!empty($assessmentCoupons) && $assessmentCoupons[0]->coupon->hold_status != 1){ ?>
+                                <?php if(!isset($holdReport) || $holdReport == false){ ?>
                                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; box-sizing: border-box; width: 100%; min-width: 100%;" width="100%">
                                         <tbody>
                                             <tr>
@@ -220,7 +220,7 @@
                                         <?php } ?>
                                         
                                         <?php 
-                                        if(isset($assessmentCoupons) && !empty($assessmentCoupons)){
+                                        if(isset($assessmentCoupons) && $assessmentCoupons->isNotEmpty()){
                                             foreach($assessmentCoupons as $index=>$couponRow){
                                                 ?>
                                                 <tr>
