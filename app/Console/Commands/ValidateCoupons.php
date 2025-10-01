@@ -21,7 +21,7 @@ class ValidateCoupons implements CommandInterface
         Logger::info('Cron coupons:expire-status called');
         $yesterday = Carbon::yesterday()->toDateString();
         $coupons = CouponModel::with(['affiliate', 'company'])->where(['end_date' => $yesterday, 'status' => 'active'])->orderBy('created_datetime', 'asc')->get();
-        Logger::info('Found Coupons ', (array) $coupons);
+        // Logger::info('Found Coupons ', (array) $coupons);
         if($coupons->isEmpty()){
             return false;
         }
