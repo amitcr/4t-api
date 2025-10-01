@@ -134,9 +134,6 @@ if($trd_content=="Choleric"){
 }
 
 
-$particiapnt_name = $assessment->first_name.' '.$assessment->last_name;
-$participant_first_name = trim(ucfirst($assessment->first_name));
-
 $block_class = $Top_one ."_".$Top_two."_block";
 $the_report_pattern = "The ".$report_pattern;
 ?>
@@ -244,7 +241,7 @@ $the_report_pattern = "The ".$report_pattern;
         <tr style="width: 100%; display:inline-block;">
             <td align="center" style="width: 100%; display:inline-block; padding-top:140px;">
                 <h4 style="font-size:13pt;color:#231f20;text-align:center;margin-bottom:8px; padding-bottom:0px;font-weight:600; text-transform:uppercase;">Prepared For</h4>
-				<h2 style="font-family: 'proxima_novabold'; color:#231f20; font-size:30pt;margin-top:0px;line-height:45px;margin-bottom: 5px;text-align: center; text-transform: uppercase;"><?=$particiapnt_name?></h2> 
+				<h2 style="font-family: 'proxima_novabold'; color:#231f20; font-size:30pt;margin-top:0px;line-height:45px;margin-bottom: 5px;text-align: center; text-transform: uppercase;"><?=$participantName?></h2> 
             </td>
         </tr>
         <tr>
@@ -367,7 +364,7 @@ $the_report_pattern = "The ".$report_pattern;
                                 <tr>
                                     <td style="width:100%;display:inline-block;">
                                         <p style="color: #231f20; font-family: 'proxima_nova_light'; font-size: 13pt; line-height: 25px; margin-top: 0px; margin-bottom: 30px;">
-                                            <b style="font-family: 'proxima_novabold'; color: #231f20;"><?=$participant_first_name?></b>, this special report is designed just for you! We are excited you are on this journey of discovering more about yourself, your natural
+                                            <b style="font-family: 'proxima_novabold'; color: #231f20;"><?=$participantFirstName?></b>, this special report is designed just for you! We are excited you are on this journey of discovering more about yourself, your natural
                                             tendencies, and why you do what you do.
                                         </p>
                                     </td>
@@ -1523,7 +1520,7 @@ $the_report_pattern = "The ".$report_pattern;
         <tr>
             <td style="width: 100%; display: inline-block;">
                 <div style="width: 95%;">
-                    <p style="color: #231f20; font-size: 14pt; margin: 0px; line-height:26px;"> <b style="color:#231f20;font-size: 14pt;line-height:26px;"><?=$participant_first_name?>,</b> everyone is a blend of all four temperaments and the greatest influence on a person’s personality are from their <b>first</b> and <b>second temperament.<br/>Which Are Your First Two?</b></p>
+                    <p style="color: #231f20; font-size: 14pt; margin: 0px; line-height:26px;"> <b style="color:#231f20;font-size: 14pt;line-height:26px;"><?=$participantFirstName?>,</b> everyone is a blend of all four temperaments and the greatest influence on a person’s personality are from their <b>first</b> and <b>second temperament.<br/>Which Are Your First Two?</b></p>
                 </div>
             </td>
         </tr>
@@ -1592,7 +1589,7 @@ $the_report_pattern = "The ".$report_pattern;
     <table style="width: 100%; margin-left: 0px; display: inline-block; padding-left: 80px; padding-right: 40px; padding-top: 20px;">
         <tr>
             <td style="width: 100%; display: inline-block;">
-                <p style="color: #231f20; font-size: 13pt; margin: 0px; line-height: 24px;"><b style="color: #231f20;"><?=$participant_first_name?>,</b> based on your answers, you scored as:</p>
+                <p style="color: #231f20; font-size: 13pt; margin: 0px; line-height: 24px;"><b style="color: #231f20;"><?=$participantFirstName?>,</b> based on your answers, you scored as:</p>
             </td>
         </tr>
         <tr>
@@ -22653,7 +22650,7 @@ $the_report_pattern = "The ".$report_pattern;
     
         <tr>
             <td align="left" style="width: 85%; display: inline-block; padding: 0px; margin: 0px; padding-bottom:10px;">
-                <p style="color: #231f20; font-size: 13pt; margin: 0px; line-height: 24px;font-family: 'proxima_novabold';"><span style="color: #231f20;"><?=$participant_first_name?>,</span> what’s your plan?</p>
+                <p style="color: #231f20; font-size: 13pt; margin: 0px; line-height: 24px;font-family: 'proxima_novabold';"><span style="color: #231f20;"><?=$participantFirstName?>,</span> what’s your plan?</p>
                 <p style="color: #231f20; font-size: 12pt; margin: 0px; line-height: 18px; margin-bottom: 0px; margin-top: 10px; text-align: left;">
                    Different people have different plans for how to effectively move ahead in their journey. 
                 </p>
@@ -22823,7 +22820,7 @@ $the_report_pattern = "The ".$report_pattern;
         <tr>
             <td align="left" style="width: 85%; display: inline-block;">
                 <p style="color: #231f20; font-size: 15pt; margin: 0px; line-height: 24px;font-family: 'proxima_novabold';margin-top:15px;">
-                    <b style="color: #231f20;"><?=$participant_first_name?>,</b> congratulations on completing your report!
+                    <b style="color: #231f20;"><?=$participantFirstName?>,</b> congratulations on completing your report!
                 </p>
             </td>
         </tr>
@@ -22944,7 +22941,7 @@ $the_report_pattern = "The ".$report_pattern;
         <tr style="width:100%; display:inline-block;">
 			<td style="width:100%; display:inline-block; padding:0px 30px;" align="center">
 				<hr style="border-top: 3px solid #186680; color: #186680;">
-				<h1 style="font-size:18pt;word-break: break-all; margin-top:8px;margin-bottom:8px; line-height:18pt;" align="center"><?= $participant_first_name?>, based on your selections, you scored as<br/><?=$the_report_pattern?><br/>(<?=$first_content."-".$sec_content?>)</h1>
+				<h1 style="font-size:18pt;word-break: break-all; margin-top:8px;margin-bottom:8px; line-height:18pt;" align="center"><?= $participantFirstName?>, based on your selections, you scored as<br/><?=$the_report_pattern?><br/>(<?=$first_content."-".$sec_content?>)</h1>
 				<hr style=" border-bottom: 3px solid #186680; color: #186680; margin-bottom:0px;"> 
 			</td>
 		</tr>
@@ -23246,7 +23243,7 @@ $the_report_pattern = "The ".$report_pattern;
     <table style="width: 100%; display: inline-block; margin: 0px; padding: 0px; padding-left: 80px; padding-right: 40px; margin-top: 15px;" cellpadding="0" cellspacing="0">
         <tr>
             <td align="left" style="width: 85%; display: inline-block; padding-bottom:10px;">
-                <h2 class="text-center" style="color: #231f20; margin:0px; font-size: 20pt; text-align: left; padding: 0px; margin: 0px; line-height: 36px; margin-top: 0px; text-align: left; width: 100%; text-transform:uppercase;">Top 10 Temperament Needs<br/>For <?=$particiapnt_name?></h2>
+                <h2 class="text-center" style="color: #231f20; margin:0px; font-size: 20pt; text-align: left; padding: 0px; margin: 0px; line-height: 36px; margin-top: 0px; text-align: left; width: 100%; text-transform:uppercase;">Top 10 Temperament Needs<br/>For <?=$participantName?></h2>
             </td>
         </tr>
         <tr>

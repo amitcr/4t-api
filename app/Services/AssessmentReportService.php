@@ -41,8 +41,8 @@ class AssessmentReportService
         Logger::info("generateReport Request came from " . $type . " source", (array) $assessments);
         $chartImageMissingAssessments = [];
         foreach($assessments as $assessment){
-            $participantName = get_assessment_participant_name($assessment);
-            $participantFirstName = get_assessment_participant_name($assessment, 'first');
+            $participantName = ucfirst(get_assessment_participant_name($assessment));
+            $participantFirstName = ucfirst(get_assessment_participant_name($assessment, 'first'));
            
             $personalReportName = $assessment->assessment_id."-".trim(str_replace(" ", "-", $participantName)).'-'. date("m-d-Y", strtotime($assessment->created_at)).".pdf";
 

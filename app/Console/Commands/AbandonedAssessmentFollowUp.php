@@ -45,7 +45,7 @@ class AbandonedAssessmentFollowUp implements CommandInterface
             return;
 
         // echo AssessmentModel::abandoned()->toSql(); die;
-        $abandonedAssessments = AssessmentModel::with(['payment'])->abandoned()->get();
+        $abandonedAssessments = AssessmentModel::with(['user','payment'])->abandoned()->get();
         // pr($abandonedAssessments); die;
         if($abandonedAssessments->isEmpty())
             return;
@@ -60,9 +60,13 @@ class AbandonedAssessmentFollowUp implements CommandInterface
 
             $contactId = UserMetaModel::where(['user_id' => $assessment->user_id, 'meta_key' => '_mailjet_contact_id'])->value('meta_value');
 
+            $participantName = get_assessment_participant_name($assessment);
+            $participantFirstName = get_assessment_participant_name($assessment, 'first');
+            $participantLastName = get_assessment_participant_name($assessment, 'last');
+
             if(empty($contactId)){
-                $user = UserModel::find($assessment->user_id);
-                $response = $this->contactService->create(["Name"  => trim($assessment->first_name.' '.$assessment->last_name),"Email" =>  $user->user_email,"IsExcludedFromCampaigns" =>  false]);
+                // $user = UserModel::find($assessment->user_id);
+                $response = $this->contactService->create(["Name"  => trim($participantName),"Email" =>  $assessment->user->user_email,"IsExcludedFromCampaigns" =>  false]);
                 if($response->success()){
                     Logger::info('Contact Creation Response: ', $response->getData());
                     $contact = $response->getData();
@@ -79,15 +83,15 @@ class AbandonedAssessmentFollowUp implements CommandInterface
                     "Data"   =>  [
                         [
                             "Name"  =>  "name",
-                            "Value"  =>  trim($assessment->first_name.' '.$assessment->last_name),
+                            "Value"  =>  trim($participantName),
                         ],
                         [
                             "Name"  =>  "firstname",
-                            "Value"  =>  $assessment->first_name,
+                            "Value"  =>  $participantFirstName,
                         ],
                         [
                             "Name"  =>  "lastname",
-                            "Value"  =>  $assessment->last_name,
+                            "Value"  =>  $participantLastName,
                         ],
                         [
                             "Name"  =>  "userid",
