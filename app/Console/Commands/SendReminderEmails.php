@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 use App\Models\ParticipantModel;
 use App\Core\Mail\Mail;
 use App\Core\CommandInterface;
+use App\Core\Logger;
 
 class SendReminderEmails implements CommandInterface
 {

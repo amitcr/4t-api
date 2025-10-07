@@ -4,6 +4,8 @@ namespace App\Core\Mail;
 use Aws\Ses\SesClient;
 use Aws\Exception\AwsException;
 use App\Core\Config;
+use App\Models\OffloadSESModel;
+use Carbon\Carbon;
 
 class SESMailer implements MailerInterface
 {
@@ -53,7 +55,17 @@ class SESMailer implements MailerInterface
                 ],
             ]);
 
-            return !empty($result['MessageId']);
+            if(!empty($result['MessageId'])){
+                OffloadSESModel::create([
+                    'email_to' => $to,
+                    'email_subject' => $subject,
+                    'email_message' => $body,
+                    'email_status' => 'sent',
+                    'email_created' => Carbon::now(),
+                    'email_sent' => Carbon::now()
+                ]); // Log email sent in OffloadSES
+                return !empty($result['MessageId']);
+            }
         } catch (AwsException $e) {
             error_log("SES Mailer Error: " . $e->getAwsErrorMessage());
             return false;

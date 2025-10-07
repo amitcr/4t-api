@@ -4,7 +4,7 @@ namespace App\Console;
 use App\Core\CronKernel;
 use App\Core\Schedule;
 // use App\Console\Commands\ClearTempUsers;
-// use App\Console\Commands\SendReminderEmails;
+use App\Console\Commands\SendReminderEmails;
 use App\Console\Commands\ValidateCoupons;
 use App\Console\Commands\CouponExpiryReminderEmail;
 use App\Console\Commands\CouponAutoRecharge;
@@ -23,7 +23,7 @@ class Kernel extends CronKernel
         // $schedule->command(SendReminderEmails::class)->everyMinute();
         // $schedule->command(ValidateCoupons::class)->dailyAt('00:00')->timezone('UTC');
 
-        // $schedule->command('emails:send-reminders')->everyMinute();
+        $schedule->command('emails:send-reminders')->everyMinute();
 
         // Active Commands
         $schedule->command('emails:coupon-expire-reminder')->dailyAt('16:00')->timezone('UTC');
@@ -42,7 +42,7 @@ class Kernel extends CronKernel
     protected function commands()
     {
         // $this->register(ClearTempUsers::class);
-        // $this->register(SendReminderEmails::class);
+        $this->register(SendReminderEmails::class);
 
         // Active Commands
         $this->register(ValidateCoupons::class);
