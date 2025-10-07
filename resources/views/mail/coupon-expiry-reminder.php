@@ -124,7 +124,7 @@
                                                     <?php 
                                                     if(!empty($coupon->affiliate) && $coupon->user_id == $coupon->affiliate->user_id){
                                                         $user_dashboard = get_settings_option('home').'/affiliate-area/?tab=coupons';
-                                                    }else if(!empty($coupon->affiliate) && $coupon->user_id == $coupon->affiliate->user_id){
+                                                    }else if(!empty($coupon->company) && $coupon->user_id == $coupon->company->user_id){
                                                         $user_dashboard = get_settings_option('home').'/company-area/?tab=coupons';
                                                     }
                                                     ?>
