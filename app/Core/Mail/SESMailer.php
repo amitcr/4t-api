@@ -56,11 +56,18 @@ class SESMailer implements MailerInterface
             ]);
 
             if(!empty($result['MessageId'])){
+                $headers = "Content-Type: text/html;
+                From: ".$this->config['from']['name']." <".$this->config['from']['address'].">
+                Reply-To: ".$this->config['from']['address']."
+                Content-Type: text/html; charset=utf-8";
+
                 OffloadSESModel::create([
                     'email_to' => $to,
                     'email_subject' => $subject,
                     'email_message' => $body,
                     'email_status' => 'sent',
+                    'email_headers' => $headers,
+                    'email_attachments' =>  serialize(['']),
                     'email_created' => Carbon::now(),
                     'email_sent' => Carbon::now()
                 ]); // Log email sent in OffloadSES
