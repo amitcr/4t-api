@@ -6,6 +6,7 @@ use Aws\Exception\AwsException;
 use App\Core\Config;
 use App\Models\OffloadSESModel;
 use Carbon\Carbon;
+use App\Core\Logger;
 
 class SESMailer implements MailerInterface
 {
@@ -74,7 +75,8 @@ class SESMailer implements MailerInterface
                 return !empty($result['MessageId']);
             }
         } catch (AwsException $e) {
-            error_log("SES Mailer Error: " . $e->getAwsErrorMessage());
+            // error_log("SES Mailer Error: " . $e->getAwsErrorMessage());
+            Logger::error("SES Mailer Error: " . $e->getAwsErrorMessage());
             return false;
         }
     }
