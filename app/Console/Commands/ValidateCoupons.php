@@ -18,9 +18,10 @@ class ValidateCoupons implements CommandInterface
 
     public function handle($arguments)
     {
-        // Logger::info('Cron coupons:expire-status called');
+        Logger::info('Cron coupons:expire-status called');
         $yesterday = Carbon::yesterday()->toDateString();
         $coupons = CouponModel::with(['affiliate', 'company'])->where(['end_date' => $yesterday, 'status' => 'active'])->orderBy('created_datetime', 'asc')->get();
+        // Logger::info('Found Coupons ', (array) $coupons);
         if($coupons->isEmpty()){
             return false;
         }
@@ -57,7 +58,7 @@ class ValidateCoupons implements CommandInterface
 
             
             if($unused_charges != 0){
-                $notes = $notes ?? 'Credits Reversed to your account after '.$coupon->coupon_code.' coupon code has been expired.';
+                $notes = !empty($notes) ? $notes : 'Credits Reversed to your account after '.$coupon->coupon_code.' coupon code has been expired.';
                 $transaction_array = [
                     'amount'    =>  $unused_charges,
                     'transaction_type'  =>  'reversal',

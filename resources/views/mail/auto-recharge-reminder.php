@@ -138,9 +138,9 @@
                                 <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px; color:#000;">
                                     <?php 
                                     if(!empty($coupon->affiliate) && $coupon->user_id == $coupon->affiliate->user_id){
-                                        $user_dashboard = get_settings_option('home').'affiliate-area/?tab=coupons';
-                                    }else if(!empty($coupon->affiliate) && $coupon->user_id == $coupon->affiliate->user_id){
-                                        $user_dashboard = get_settings_option('home').'company-area/?tab=coupons';
+                                        $user_dashboard = get_settings_option('home').'/affiliate-area/?tab=coupons';
+                                    }else if(!empty($coupon->company) && $coupon->user_id == $coupon->company->user_id){
+                                        $user_dashboard = get_settings_option('home').'/company-area/?tab=coupons';
                                     }
                                     ?>
                                     You can log in to your account to make any changes: <a style="color:#4688dd" href="<?=$user_dashboard?>" target="_blank"><?=$user_dashboard?></a>

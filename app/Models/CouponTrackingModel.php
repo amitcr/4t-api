@@ -11,21 +11,17 @@ class CouponTrackingModel extends BaseModel
 
     public function assessment(): BelongsTo
     {
-        return $this->belongsTo(UserModel::class, 'assessment_id', 'assessment_id');
+        return $this->belongsTo(AssessmentModel::class, 'assessment_id', 'assessment_id');
     }
     
     public function coupon(): BelongsTo
     {
-        return $this->belongsTo(UserModel::class, 'coupon_id', 'coupon_id');
+        return $this->belongsTo(CouponModel::class, 'coupon_id', 'coupon_id');
     }
     
-    public function affiliate(): BelongsTo
+    public function participant(): BelongsTo
     {
-        return $this->belongsTo(AffiliateModel::class, 'affiliate_id', 'affiliate_id');
+        return $this->belongsTo(ParticipantModel::class, 'participant_id', 'participant_id');
     }
     
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(CompanyModel::class, 'company_id', 'company_id');
-    }
 }

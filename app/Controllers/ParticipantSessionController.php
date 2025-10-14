@@ -71,7 +71,6 @@ class ParticipantSessionController
 
     // Create User, Participant and Participant Session for dummy users, manage all within transaction to rollback if anything fails
     public function createDummyParticipantSession($data){
-        return $data; die;
         // Create Dummy User
         $faker = Faker::create();
         $firstName = $faker->firstName;

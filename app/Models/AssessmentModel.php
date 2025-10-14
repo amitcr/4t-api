@@ -49,7 +49,7 @@ class AssessmentModel extends BaseModel
 
     public function payment(): HasOne
     {
-        return $this->hasOne(PaymentModel::class, 'assessment_id', 'assessment_id');
+        return $this->hasOne(AssessmentPaymentModel::class, 'assessment_id', 'assessment_id');
     }
     
     public function user(): BelongsTo

@@ -11,10 +11,16 @@ class NeedsAssessmentChoicesService extends BaseHttpService
     {
         return $this->get($this->endpoint, $query);
     } 
-
-    public function getById($id)
+    
+    public function listByQueryParams(array $query = [])
     {
-        return $this->get("{$this->endpoint}/{$id}");
+        $this->endpoint .= '?'.implode("&", $query);        
+        return $this->getQueryUrl($this->endpoint);
+    }
+
+    public function getById($id, $query = [])
+    {
+        return $this->get("{$this->endpoint}/{$id}", $query);
     }
 
     public function create(array $data)

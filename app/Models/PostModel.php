@@ -1,7 +1,7 @@
 <?php
 namespace App\Models;
 
-class PostsModel extends BaseModel
+class PostModel extends BaseModel
 {
     protected $table = 'posts'; // NO prefix here!
     protected $primaryKey = 'ID';

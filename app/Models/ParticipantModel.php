@@ -4,9 +4,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-use App\Models\UserModel;
-use App\Models\ParticipantSessionModel;
-
 class ParticipantModel extends BaseModel
 {
     protected $table = 'mytemp_participants'; // NO prefix here!
@@ -26,6 +23,11 @@ class ParticipantModel extends BaseModel
     public function user(): BelongsTo
     {
         return $this->belongsTo(UserModel::class, 'user_id', 'ID');
+    }
+
+    public function assessments(): HasMany
+    {
+        return $this->hasMany(AssessmentModel::class, 'participant_id', 'participant_id');
     }
 
     public function sessions(): HasMany

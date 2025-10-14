@@ -3,8 +3,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-use App\Models\AssessmentModel;
-
 class AssessmentPaymentModel extends BaseModel
 {
     protected $table = 'mytemp_assessment_payments'; // NO prefix here!

@@ -4,6 +4,7 @@ namespace App\Core\Mail;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use App\Core\Config;
+use App\Core\Logger;
 
 class SMTPMailer implements MailerInterface
 {
@@ -35,7 +36,8 @@ class SMTPMailer implements MailerInterface
 
             return $mail->send();
         } catch (Exception $e) {
-            error_log("SMTP Mailer Error: {$mail->ErrorInfo}");
+            // error_log("SMTP Mailer Error: {$mail->ErrorInfo}");
+            Logger::error("SES Mailer Error: " . $e->getAwsErrorMessage());
             return false;
         }
     }

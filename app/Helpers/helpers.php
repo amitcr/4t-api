@@ -1,6 +1,6 @@
 <?php
 use App\Models\OptionsModel;
-use App\Models\PostsModel;
+use App\Models\PostModel;
 use App\Core\Config;
 
 if (!function_exists('dd')) {
@@ -20,8 +20,7 @@ if (!function_exists('pr')) {
             echo "<pre>";
             print_r($v);
             echo "</pre>";
-        }
-        die(1);
+        }        
     }
 }
 
@@ -43,7 +42,7 @@ if(!function_exists('get_assessment_self_page_link')){
         if(empty($page_id))
             return;
 
-        $post = PostsModel::find($page_id);
+        $post = PostModel::find($page_id);
         if(empty($post))
             return;
 
@@ -70,7 +69,7 @@ if(!function_exists('get_assessment_needs_page_link')){
         if(empty($page_id))
             return;
 
-        $post = PostsModel::find($page_id);
+        $post = PostModel::find($page_id);
         if(empty($post))
             return;
 
@@ -96,7 +95,7 @@ if(!function_exists('get_assessment_payment_page_link')){
         if(empty($page_id))
             return;
 
-        $post = PostsModel::find($page_id);
+        $post = PostModel::find($page_id);
         if(empty($post))
             return;
 
@@ -212,5 +211,50 @@ if(!function_exists('get_app_option')){
 if(!function_exists('get_logo_url')){
     function get_logo_url(){
         return get_settings_option('home').'resources/images/logo.png';
+    }
+}
+
+if(!function_exists('get_assessment_chart_image')){
+    function get_assessment_chart_image(int $assessment_id, string $imageType = '', string $returnType = ''){
+        if(empty($assessment_id) || $assessment_id == 0)
+            return false;
+
+        $imageName = !empty($imageType) ? $imageType.'_chart_'.$assessment_id.'.png': 'chart_'.$assessment_id.'.png';
+        if(file_exists( PROJECT_ROOT.'/assessments/images/'.$imageName )){
+            if(empty($returnType) || $returnType == "url"){
+                return get_settings_option('home') .'assessments/images/'.$imageName;
+            }else{
+                return PROJECT_ROOT.'/assessments/images/'.$imageName;
+            }
+        }
+
+        return false;
+    }
+}
+
+if(!function_exists('get_assessment_participant_name')){
+    function get_assessment_participant_name($assessment, $nameType = 'full'){
+        if(empty($assessment))
+            return '';
+
+        $participantName = !empty($assessment->first_name) ? $assessment->first_name.' '.$assessment->last_name : (isset($assessment->user) ? $assessment->user_display_name : '');
+        $participantFirstName = !empty($assessment->first_name) ? $assessment->first_name : '';
+        if(empty($participantName)){
+            $participantFirstName = UserMetaModel::where(['user_id' => $assessment->user_id, 'meta_key' => 'first_name'])->value('meta_value');
+            $participantLastName = UserMetaModel::where(['user_id' => $assessment->user_id, 'meta_key' => 'last_name'])->value('meta_value');
+
+            if(!empty($participantFirstName)){
+                $participantName = $participantFirstName;
+                if(!empty($participantLastName)){
+                    $participantName .= ' '.$participantLastName;
+                }
+            }
+        }
+        if($nameType == 'first')
+            return $participantFirstName;
+        else if($nameType == 'last')
+            return $participantLastName;
+        else
+            return $participantName;
     }
 }

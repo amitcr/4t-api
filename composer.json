@@ -16,6 +16,8 @@
     "phpmailer/phpmailer": "^6.10",
     "aws/aws-sdk-php": "^3.337",
     "stripe/stripe-php": "^17.6",
-    "google/apiclient": "^2.3.0"
+    "google/apiclient": "^2.3.0",
+    "mailjet/mailjet-apiv3-php": "^1.6",
+    "spipu/html2pdf": "^5.3"
   }
 }

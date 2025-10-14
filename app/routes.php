@@ -8,6 +8,7 @@ use App\Middleware\JwtMiddleware;
 
 use App\Controllers\AuthController;
 use App\Controllers\AssessmentController;
+use App\Controllers\JobController;
 use App\Controllers\ParticipantController;
 use App\Controllers\ParticipantSessionController;
 
@@ -46,6 +47,17 @@ $router->group(['prefix' => '/v1', 'middleware' => [CorsMiddleware::class]], fun
     // $r->get('/assessments/validate', [AssessmentController::class, 'validateStatus']);
     $r->group(['prefix' => '/assessments', 'controller' => AssessmentController::class ], function($r) {
         $r->post('/validate', 'validate', [JwtMiddleware::class]);
+        
+        $r->get('', 'index');
+        $r->get('/{id}', 'show');
+        $r->post('', 'store');
+        $r->put('/{id}', 'update');
+        $r->delete('/{id}', 'destroy');
+        
+    });
+    
+    // Jobs routes
+    $r->group(['prefix' => '/jobs', 'controller' => JobController::class ], function($r) {
         
         $r->get('', 'index');
         $r->get('/{id}', 'show');

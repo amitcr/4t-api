@@ -43,7 +43,6 @@ class ParticipantController
 
     // Example: POST /api/assessments
     public function store($data) {
-        return $data;
         return ParticipantModel::create($data);
     }
 
