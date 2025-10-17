@@ -19,6 +19,7 @@ class ExportAssessmentStats implements CommandInterface
     {
         // detect if called via cron job (pass `--daily` flag) or manual
         $mode = ($arguments['mode'] ?? "daily");
+        $date = ($arguments['date'] ?? "");
         
         $couponIds = explode(",", Config::get('app.direct_codes'));
         // pr($couponIds); die;
@@ -42,7 +43,10 @@ class ExportAssessmentStats implements CommandInterface
             ")
             ->whereIn('ac.coupon_id', $couponIds);
 
-        if ($mode == 'daily') {
+        if(!empty($date)){
+            // echo "Defined Date: ".$date; die;
+            $query->whereDate("mytemp_assessments.modified_at", $date);
+        }else if($mode == 'daily') {
             // Get yesterday’s stats
             $yesterday = Carbon::now()->subDays('2')->toDateString();
 
