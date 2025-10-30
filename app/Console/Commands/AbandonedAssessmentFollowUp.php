@@ -200,7 +200,11 @@ class AbandonedAssessmentFollowUp implements CommandInterface
             return $contactListId;
         }
 
-        $details = json_decode($lastAssessmentDetails->details);
+        if(!is_object($lastAssessmentDetails->details)){
+            $details = json_decode($lastAssessmentDetails->details);
+        }else{
+            $details = $lastAssessmentDetails->details;
+        }
 
         if (isset($details->listId) && $details->listId == $contactListId) {
             return $this->secondaryListId;
