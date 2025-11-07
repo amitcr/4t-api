@@ -14,6 +14,8 @@ class GenerateAssessmentReport implements CommandInterface
     public $signature = 'assessments:generate-report';
     public $description = 'Generate Assessment PDF report file for missing assessments';
 
+    protected $assessmentReportService; 
+    
     public function __construct(){
         $this->assessmentReportService = new AssessmentReportService();
     }

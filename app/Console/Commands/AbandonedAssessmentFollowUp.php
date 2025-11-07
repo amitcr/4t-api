@@ -27,6 +27,7 @@ class AbandonedAssessmentFollowUp implements CommandInterface
     protected $manageContactListService;
     protected $selfAssessmentResultsService;
     protected $secondaryListId;
+    protected $contactDataService;
 
     public function __construct(){
         $this->contactService = new ContactsService();
