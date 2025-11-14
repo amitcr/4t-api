@@ -62,6 +62,7 @@ class BaseHttpService
                 'uri'    => $uri,
                 'status' => $response->status(),
                 'body'   => $response->body(),
+                'data'  => isset($options['data']) ? $options['data'] : null,
             ]);
 
             return [
@@ -89,6 +90,7 @@ class BaseHttpService
                 Logger::error("API $method request exception", [
                     'uri'   => $uri,
                     'error' => $data,
+                    'data'  => isset($options['data']) ? $options['data'] : null,
                 ]);
 
                 return [
