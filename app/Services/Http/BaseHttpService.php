@@ -108,6 +108,7 @@ class BaseHttpService
             Logger::error("API $method unexpected exception", [
                 'uri'   => $uri,
                 'error' => $e->getMessage(),
+                'data'  => isset($options['data']) ? $options['data'] : null,
             ]);
 
             return [
