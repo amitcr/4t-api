@@ -62,6 +62,7 @@ class BaseHttpService
                 'uri'    => $uri,
                 'status' => $response->status(),
                 'body'   => $response->body(),
+                'options'   => $options
             ]);
 
             return [
@@ -89,6 +90,7 @@ class BaseHttpService
                 Logger::error("API $method request exception", [
                     'uri'   => $uri,
                     'error' => $data,
+                    'options'   => $options
                 ]);
 
                 return [
@@ -108,6 +110,7 @@ class BaseHttpService
             Logger::error("API $method unexpected exception", [
                 'uri'   => $uri,
                 'error' => $e->getMessage(),
+                'options'   => $options
             ]);
 
             return [
