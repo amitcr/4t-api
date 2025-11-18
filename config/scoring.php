@@ -1,6 +1,7 @@
 <?php
 return [
     'base_url' => getenv('SCORING_BASE_URL') ?? "http://mt-scoring-staging.us-east-1.elasticbeanstalk.com/api/v1",
+    'graphql_url' => getenv('GRAPHQL_BASE_URL') ?? "http://mt-scoring-staging.us-east-1.elasticbeanstalk.com/api/v1",
     'timeout'  => getenv('SCORING_TIMEOUT') ?? 10,
     'headers'  => [
         // 'Accept'       => 'application/json',

@@ -154,7 +154,7 @@ class BaseHttpService
         return $this->handleRequest(fn() => $req->delete($uri), 'DELETE', $uri, ['headers' => $data, 'query' => $data]);
     }
 
-    protected function graphql(string $endpoint, string $query, array $variables = [], array $headers = [])
+    public function graphql(string $endpoint, string $query, array $variables = [], array $headers = [])
     {
         $payload = ['query' => $query, 'variables' => $variables];
         $req = $headers ? $this->withHeaders($headers) : $this->http;

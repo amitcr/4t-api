@@ -82,6 +82,20 @@ class Router
     }
 
     /**
+     * Define a route that matches any HTTP method.
+     * $handler: [ControllerClass::class, 'method'] OR callable
+     * $middleware: array of middleware class names     * 
+     */
+    public function any(string $path, $handler, array $middleware = [])
+    {
+        $this->get($path, $handler, $middleware);
+        $this->post($path, $handler, $middleware);
+        $this->put($path, $handler, $middleware);
+        $this->delete($path, $handler, $middleware);
+        $this->patch($path, $handler, $middleware);
+    }
+
+    /**
      * Dispatch the current HTTP request.
      */
     public function dispatch()

@@ -2,6 +2,7 @@
 // app/routes.php
 use App\Controllers\HealthController;
 use App\Controllers\ProtectedController;
+use App\Controllers\GraphQLController;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Middleware\JwtMiddleware;
@@ -23,6 +24,9 @@ use App\Controllers\ScoringEngine\SelfAssessmentResponseController;
 $router->group(['prefix' => '/v1', 'middleware' => [CorsMiddleware::class]], function($r) {
     // GET /api/v1/health
     $r->get('/health', [HealthController::class, 'index'], [RateLimitMiddleware::class]);
+
+    // GraphQL endpoint
+    $r->any('/graphql', [GraphQLController::class, 'handle'], [RateLimitMiddleware::class]);
 
     // Param route: GET /api/v1/users/{id}
     $r->get('/users/{id}', function($request, $params) {
@@ -117,5 +121,6 @@ $router->group(['prefix' => '/v1', 'middleware' => [CorsMiddleware::class]], fun
 $router->group(['prefix' => '/v2', 'middleware' => [CorsMiddleware::class]], function($r){
     $r->get('/health', [HealthController::class, 'index']);
 });
+
 
 
