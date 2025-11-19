@@ -1,6 +1,7 @@
 <?php
 use App\Models\OptionsModel;
 use App\Models\PostModel;
+use App\Models\UserMetaModel;
 use App\Core\Config;
 
 if (!function_exists('dd')) {
