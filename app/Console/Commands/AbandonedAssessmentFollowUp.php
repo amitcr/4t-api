@@ -185,7 +185,7 @@ class AbandonedAssessmentFollowUp implements CommandInterface
             }
 
             // pr($assessment);
-            die("First Row Updated!");
+            // die("First Row Updated!");
         }
     }
 

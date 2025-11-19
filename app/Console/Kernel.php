@@ -33,7 +33,7 @@ class Kernel extends CronKernel
         $schedule->command('coupons:expire-status')->dailyAt('06:00')->timezone('UTC');
 
         $schedule->command('assessments:abandoned-followup')->everyMinute();
-        $schedule->command('assessments:sync-stats')->dailyAt('06:00')->timezone('UTC');
+        $schedule->command('assessments:sync-stats')->dailyAt('06:05')->timezone('UTC');
         $schedule->command('assessments:generate-report')->everyMinute();
         $schedule->command('assessments:delete-duplicates')->dailyAt('06:00')->timezone('UTC');
 
