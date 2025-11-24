@@ -144,7 +144,7 @@ class AbandonedAssessmentFollowUp implements CommandInterface
 
                     $assessmentVariation = TestingEntryModel::where(['data_id' => $assessment->assessment_id, 'data_type' => 'assessment'])->first();
                     if(!empty($assessmentVariation) && $assessmentVariation->variation != "control"){
-                        $contactListId = Config::get('app.mailjet_mini_list_id') ? Config::get('app.mailjet_mini_list_id') : $contactListId;
+                        $contactListId = Config::get('app.mailjet_mini_list_id') ?? $contactListId;
                     }else if(!empty($this->secondaryListId)){
                         $contactListId = $this->validateAssessmentListId($contactListId);
                     }
