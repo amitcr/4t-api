@@ -8,6 +8,8 @@ use App\Models\UserModel;
 use App\Models\UserMetaModel;
 use App\Models\PostModel;
 use App\Models\TestingEntryModel;
+use App\Models\CouponModel;
+use App\Models\CouponTrackingModel;
 use App\Services\Mailjet\ContactsService;
 use App\Services\Mailjet\ContactDataService;
 use App\Services\Mailjet\ContactListService;
@@ -143,10 +145,24 @@ class AbandonedAssessmentFollowUp implements CommandInterface
                     Logger::info('Contact Data Updated: ', $response);
 
                     $assessmentVariation = TestingEntryModel::where(['data_id' => $assessment->assessment_id, 'data_type' => 'assessment'])->first();
+                    $isControl = true;
                     if(!empty($assessmentVariation) && $assessmentVariation->variation != "control"){
+                        $isControl = false;
                         $contactListId = Config::get('app.mailjet_mini_list_id') ?? $contactListId;
                     }else if(!empty($this->secondaryListId)){
+                        $isControl = false;
                         $contactListId = $this->validateAssessmentListId($contactListId);
+                    }
+
+                    if($isControl == false){
+                        $assessmentCoupon = CouponTrackingModel::where(['assessment_id' => $assessment->assessment_id, 'is_locked' => 1])->first();
+                        if(!empty($assessmentCoupon)){
+                            // TODO: Use different list for control group
+                            $coupon = CouponModel::find($assessmentCoupon->coupon_id);
+                            if(!empty($coupon) && $coupon->mini_report == 1){
+                                $contactListId = Config::get('app.mailjet_mini_list_id') ?? $contactListId;
+                            }
+                        }
                     }
                     
                     $args = [
