@@ -154,7 +154,7 @@ class AbandonedAssessmentFollowUp implements CommandInterface
                         $contactListId = $this->validateAssessmentListId($contactListId);
                     }
 
-                    if($isControl == false){
+                    /*if($isControl == false){
                         $assessmentCoupon = CouponTrackingModel::where(['assessment_id' => $assessment->assessment_id, 'is_locked' => 1])->first();
                         if(!empty($assessmentCoupon)){
                             // TODO: Use different list for control group
@@ -163,7 +163,7 @@ class AbandonedAssessmentFollowUp implements CommandInterface
                                 $contactListId = Config::get('app.mailjet_mini_list_id') ?? $contactListId;
                             }
                         }
-                    }
+                    }*/
                     
                     $args = [
                         "ContactsLists"    =>  [
