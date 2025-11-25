@@ -29,6 +29,7 @@ class AbandonedAssessmentFollowUp implements CommandInterface
     protected $manageContactListService;
     protected $selfAssessmentResultsService;
     protected $secondaryListId;
+    protected $contactDataService;
 
     public function __construct(){
         $this->contactService = new ContactsService();
@@ -46,16 +47,31 @@ class AbandonedAssessmentFollowUp implements CommandInterface
         if(empty($contactListId))
             return;
 
-        // echo AssessmentModel::abandoned()->toSql(); die;
-        $abandonedAssessments = AssessmentModel::with(['user','payment'])->abandoned()->get();
-        // pr($abandonedAssessments); die;
+        $couponIds = explode(",",Config::get('app.direct_codes'));
+        // pr($couponIds); die;
+
+        /*$abandonedQuery = AssessmentModel::with(['user','payment','couponTracks']);
+        if(!empty($couponIds)){
+            $abandonedQuery->whereHas('couponTracks', function ($q) use ($couponIds) {
+                $q->whereIn('coupon_id', $couponIds)
+                ->whereIn('usage_status', ['assigned', 'completed']);
+            });
+        }    
+        echo $abandonedQuery->abandoned()->toSql();    die;*/
+
+        $abandonedQuery = AssessmentModel::with(['user','payment','couponTracks']);
+        if(!empty($couponIds)){
+            $abandonedQuery->whereHas('couponTracks', function ($q) use ($couponIds) {
+                $q->whereIn('coupon_id', $couponIds)
+                ->whereIn('usage_status', ['assigned', 'completed']);
+            });
+        }        
+        $abandonedAssessments = $abandonedQuery->abandoned()->get();
+        
         if($abandonedAssessments->isEmpty())
             return;
 
         foreach($abandonedAssessments as $assessment){
-            // echo $assessment->assessment_id; die;
-            // pr($assessment); die;
-            
 
             if(!empty($assessment->details) && isset($assessment->details->subscribed_at))
                 continue;
@@ -144,26 +160,31 @@ class AbandonedAssessmentFollowUp implements CommandInterface
                     $response = $contactDataResponse->getData();
                     Logger::info('Contact Data Updated: ', $response);
 
-                    $assessmentVariation = TestingEntryModel::where(['data_id' => $assessment->assessment_id, 'data_type' => 'assessment'])->first();
-                    $isControl = true;
-                    if(!empty($assessmentVariation) && $assessmentVariation->variation != "control"){
-                        $isControl = false;
-                        $contactListId = Config::get('app.mailjet_mini_list_id') ?? $contactListId;
-                    }else if(!empty($this->secondaryListId)){
-                        $isControl = false;
+                    if($assessment->couponTracks->isEmpty()){
                         $contactListId = $this->validateAssessmentListId($contactListId);
-                    }
-
-                    /*if($isControl == false){
-                        $assessmentCoupon = CouponTrackingModel::where(['assessment_id' => $assessment->assessment_id, 'is_locked' => 1])->first();
-                        if(!empty($assessmentCoupon)){
-                            // TODO: Use different list for control group
-                            $coupon = CouponModel::find($assessmentCoupon->coupon_id);
+                        /*
+                        // As of now we are not running any local A/B Testing
+                        $assessmentVariation = TestingEntryModel::where(['data_id' => $assessment->assessment_id, 'data_type' => 'assessment'])->first();
+                        $isControl = true;
+                        if(!empty($assessmentVariation) && $assessmentVariation->variation != "control"){
+                            $isControl = false;
+                            $contactListId = Config::get('app.mailjet_mini_list_id') ?? $contactListId;
+                        }else if(!empty($this->secondaryListId)){
+                            $isControl = false;
+                            $contactListId = $this->validateAssessmentListId($contactListId);
+                        }
+                        */
+                    }else{
+                        foreach($assessment->couponTracks as $couponTrack){
+                            $coupon = CouponModel::find($couponTrack->coupon_id);
                             if(!empty($coupon) && $coupon->mini_report == 1){
                                 $contactListId = Config::get('app.mailjet_mini_list_id') ?? $contactListId;
+                                break;
+                            }else{
+                                break;
                             }
                         }
-                    }*/
+                    }
                     
                     $args = [
                         "ContactsLists"    =>  [

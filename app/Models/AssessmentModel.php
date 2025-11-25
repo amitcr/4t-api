@@ -62,6 +62,11 @@ class AssessmentModel extends BaseModel
         return $this->belongsTo(UserModel::class, 'participant_id', 'participant_id');
     }
 
+    public function couponTracks()
+    {
+        return $this->hasMany(CouponTrackingModel::class, 'assessment_id', 'assessment_id');
+    }
+
     /**
      * Scope for abandoned assessments
      */
