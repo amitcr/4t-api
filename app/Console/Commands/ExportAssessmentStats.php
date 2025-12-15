@@ -48,7 +48,7 @@ class ExportAssessmentStats implements CommandInterface
             $query->whereDate("mytemp_assessments.modified_at", $date);
         }else if($mode == 'daily') {
             // Get yesterday’s stats
-            $yesterday = Carbon::now()->subDays('2')->toDateString();
+            $yesterday = Carbon::now()->subDays('1')->toDateString();
 
             $query->whereDate("mytemp_assessments.modified_at", $yesterday);
         }
