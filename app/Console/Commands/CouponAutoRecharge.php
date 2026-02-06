@@ -56,7 +56,12 @@ class CouponAutoRecharge implements CommandInterface
             if(!$couponPaymentMethod)
                 continue;
 
-            $customer_stripe_id = UserMetaModel::where(['user_id' => $coupon->user_id, 'meta_key' => '_stripe_customer_id'])->value('meta_value');
+            if($couponPaymentMethod->customer_id){
+                $customer_stripe_id = $couponPaymentMethod->customer_id;
+            }else{
+                $customer_stripe_id = UserMetaModel::where(['user_id' => $coupon->user_id, 'meta_key' => '_stripe_customer_id'])->value('meta_value');
+            }
+            
             if(empty($customer_stripe_id))
                 continue;
 
