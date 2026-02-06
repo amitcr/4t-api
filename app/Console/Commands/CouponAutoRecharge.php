@@ -69,7 +69,7 @@ class CouponAutoRecharge implements CommandInterface
             $amount = $coupon->coupondetail->auto_recharge_limit * abs($coupon->affiliate_share);
             try{
                 $paymentIntent = PaymentIntent::create([
-                    'amount'    =>  $amount,
+                    'amount'    =>  ($amount*100),
                     'customer'  =>  $customer_stripe_id,
                     'currency'  =>  'usd',
                     'automatic_payment_methods' =>  [
