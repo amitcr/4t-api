@@ -151,7 +151,7 @@
                                                 <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">Additional Usages</p>
                                             </td>
                                             <td valign="top" style="padding:12px 8px;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3" align="center">
-                                                <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;"><?=!empty($coupon->coupondetail->auto_recharge_limit) ? $coupon->coupondetail->auto_recharge_limit : number_format($paymentIntent->amount, 2)?></p>
+                                                <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;"><?=!empty($coupon->coupondetail->auto_recharge_limit) ? $coupon->coupondetail->auto_recharge_limit : number_format(($paymentIntent->amount/100), 2)?></p>
                                             </td>
                                             <td valign="top" style="padding:12px 8px;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3" align="center">
                                                 <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;"> 
@@ -160,7 +160,7 @@
                                             </td>
                                             <td style="padding:12px 8px;text-align:right;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3">
                                                 <p style="text-align:right;margin-top: 0px;margin-bottom: 5px;font-family:'Open Sans', sans-serif;font-size:14px;line-height:14px;color:#343a40">
-                                                    <?="$".number_format( $paymentIntent->amount, 2)?>
+                                                    <?="$".number_format( ($paymentIntent->amount/100), 2)?>
                                                 </p>
                                             </td>
                                         </tr>
