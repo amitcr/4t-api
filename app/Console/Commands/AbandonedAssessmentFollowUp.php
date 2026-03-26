@@ -117,7 +117,7 @@ class AbandonedAssessmentFollowUp implements CommandInterface
                         ],
                         [
                             "Name"  =>  "samplereportlink",
-                            "Value"  =>  get_settings_option('home')."view-sample-report/?mjuid=".md5($assessment->user_id).'&ftaid='.md5($assessment->assessment_id),
+                            "Value"  =>  get_settings_option('home')."/view-sample-report/?mjuid=".md5($assessment->user_id).'&ftaid='.md5($assessment->assessment_id),
                         ],
                         [
                             "Name"  =>  "customlink",
