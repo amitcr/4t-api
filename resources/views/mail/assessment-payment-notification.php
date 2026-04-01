@@ -232,7 +232,7 @@
                                                     <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
                                                         <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
                                                             <strong style="color:#000; font-weight:bold;">
-                                                                <?="-$".number_format( $couponRow->coupon->discount_amount, 2)?>
+                                                                <?="-$".number_format( ($couponRow->coupon->global_price - $couponRow->coupon->end_price), 2)?>
                                                             </strong>
                                                         </p>
                                                     </td>
