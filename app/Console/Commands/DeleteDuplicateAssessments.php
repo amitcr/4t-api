@@ -10,6 +10,7 @@ use App\Models\CouponTrackingModel;
 use App\Models\AssessmentModel;
 use App\Models\AssessmentPaymentModel;
 use App\Models\UserModel;
+use App\Models\UserMetaModel;
 use App\Core\Logger;
 use App\Core\Config;
 use Carbon\Carbon;
@@ -51,6 +52,7 @@ class DeleteDuplicateAssessments implements CommandInterface
 
                         // 3. Delete users
                         UserModel::whereIn('ID', $userIds)->delete();
+                        UserMetaModel::whereIn('user_id', $userIds)->delete();
 
                         // 4. Delete participants last
                         ParticipantModel::whereIn('participant_id', $participantIds)->delete();
