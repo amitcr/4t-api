@@ -43,6 +43,7 @@ class DeleteDuplicateAssessments implements CommandInterface
                 DB::transaction(function () use ($participantIds, $userIds, $days) {
                     if($days == 30){
                         UserModel::whereIn('ID', $userIds)->delete();
+                        UserMetaModel::whereIn('user_id', $userIds)->delete();
                     }else {
                         // 2. Bulk delete related data
                         AssessmentRelationshipModel::whereIn('participant_id', $participantIds)->delete();
