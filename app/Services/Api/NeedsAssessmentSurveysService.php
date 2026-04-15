@@ -3,6 +3,10 @@ namespace App\Services\Api;
 
 use App\Services\Http\BaseHttpService;
 
+/**
+ * TODO: GraphQL equivalents (developer guide §4.2):
+ *   - getById() → getNeedsAssessmentSurvey query (including inline choices)
+ */
 class NeedsAssessmentSurveysService extends BaseHttpService
 {
     protected string $endpoint = 'needs-assessment-surveys';

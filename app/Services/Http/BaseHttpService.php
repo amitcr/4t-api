@@ -12,6 +12,12 @@ class BaseHttpService
 {
     protected $http;
 
+    /**
+     * GraphQL client — non-null only when GraphQL is enabled in WP/env settings.
+     * Subclasses call $this->isGraphQLEnabled() to branch between REST and GraphQL.
+     */
+    protected ?BaseGraphQLService $graphqlClient = null;
+
     public function __construct(?Factory $factory = null)
     {
         $factory = $factory ?? new Factory();
@@ -34,6 +40,19 @@ class BaseHttpService
         }
 
         $this->http = $request;
+
+        if (BaseGraphQLService::isEnabled()) {
+            $this->graphqlClient = new BaseGraphQLService();
+        }
+    }
+
+    /**
+     * Returns true when a GraphQL client is available (i.e. GraphQL is enabled).
+     * Use this in subclass methods to branch between REST and GraphQL paths.
+     */
+    protected function isGraphQLEnabled(): bool
+    {
+        return $this->graphqlClient !== null;
     }
 
     protected function withHeaders(array $headers)

@@ -3,6 +3,11 @@ namespace App\Services\Api;
 
 use App\Services\Http\BaseHttpService;
 
+/**
+ * TODO: GraphQL equivalents (developer guide §4.1):
+ *   - list() / listByQueryParams() → listSelfAssessmentChoices query
+ *   - getById()                    → getSelfAssessmentChoice query
+ */
 class SelfAssessmentChoicesService extends BaseHttpService
 {
     protected string $endpoint = 'self-assessment-choices';
