@@ -55,6 +55,19 @@ class BaseHttpService
         return $this->graphqlClient !== null;
     }
 
+    /**
+     * Returns a placeholder response for GraphQL methods that are not yet implemented.
+     * Callers see a clear signal instead of a silent null or a REST fallback.
+     */
+    protected function graphqlNotImplemented(string $operation): object
+    {
+        return (object) [
+            '_graphql_todo' => true,
+            'operation'     => $operation,
+            'message'       => "GraphQL implementation pending for [{$operation}].",
+        ];
+    }
+
     protected function withHeaders(array $headers)
     {
         return $this->http->withHeaders($headers);

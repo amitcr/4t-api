@@ -55,6 +55,11 @@ class SelfAssessmentResponseController
         $data = $request->all();
         try {
             $created = $this->svc->create($data);
+
+            if (is_object($created) && !empty($created->error)) {
+                return Response::json(['message' => $created->message], 422);
+            }
+
             return Response::json($created, 201);
         } catch (RequestException $e) {
             $status = ($e->response) ? $e->response->getStatusCode() : 500;

@@ -78,49 +78,35 @@ class SelfAssessmentResponsesService extends BaseHttpService
 
     // ── GraphQL private methods ───────────────────────────────────────────────
 
-    /**
-     * Calls createSelfAssessmentResponse mutation.
-     * Uses GraphQL variables — user data is never interpolated into the query string.
-     *
-     * @param  array<string, mixed> $data
-     * @return object|null
-     */
     private function graphqlCreate(array $data): ?object
     {
-        $mutation = <<<'GQL'
-            mutation CreateSelfAssessmentResponse($input: CreateSelfAssessmentResponseInput!) {
-              createSelfAssessmentResponse(input: $input) {
-                id
-              }
-            }
-            GQL;
+        $sessionId = json_encode((string) ($data['participantSessionId'] ?? ''));
+        $path      = json_encode((string) ($data['questionId']           ?? '')); // REST sends 'questionId'; GraphQL field is 'questionPath'
+        $mostId    = json_encode((string) ($data['mostChoiceId']         ?? ''));
+        $leastId   = json_encode((string) ($data['leastChoiceId']        ?? ''));
 
-        $variables = [
-            'input' => [
-                'participantSessionId' => (string) ($data['participantSessionId'] ?? ''),
-                'questionPath'         => (string) ($data['questionPath'] ?? ''),
-                'mostChoiceId'         => (string) ($data['mostChoiceId'] ?? ''),
-                'leastChoiceId'        => (string) ($data['leastChoiceId'] ?? ''),
-            ],
-        ];
+        $mutation = "mutation { createSelfAssessmentResponse(input: { participantSessionId: {$sessionId} questionPath: {$path} mostChoiceId: {$mostId} leastChoiceId: {$leastId} }) { id } }";
 
-        return $this->graphqlClient->graphql($mutation, $variables);
+        $result = $this->graphqlClient->graphql($mutation);
+
+        // Normalise to REST shape: { id: "..." }
+        // GraphQL returns: { createSelfAssessmentResponse: { id: "..." } }
+        $id = $result->createSelfAssessmentResponse->id ?? null;
+
+        if ($id) {
+            return (object) ['id' => $id];
+        }
+
+        // Surface the human-readable error so the controller can return it to the frontend.
+        $message = $this->graphqlClient->getLastError() ?? 'Your response could not be saved. Please try again.';
+        return (object) ['error' => true, 'message' => $message];
     }
 
-    /**
-     * Calls deleteSelfAssessmentResponse mutation.
-     *
-     * @param  string      $id Remote response UUID.
-     * @return object|null
-     */
     private function graphqlDelete(string $id): ?object
     {
-        $mutation = <<<'GQL'
-            mutation DeleteSelfAssessmentResponse($id: ID!) {
-              deleteSelfAssessmentResponse(id: $id)
-            }
-            GQL;
+        $idStr    = json_encode($id);
+        $mutation = "mutation { deleteSelfAssessmentResponse(id: {$idStr}) }";
 
-        return $this->graphqlClient->graphql($mutation, ['id' => $id]);
+        return $this->graphqlClient->graphql($mutation);
     }
 }

@@ -3,10 +3,18 @@
 /**
  * GraphQL configuration.
  *
- * All runtime values (enabled flag, endpoint URL, credentials) are read
- * directly from WP settings (wp_options) by BaseGraphQLService at request time.
+ * Enabled flag and endpoint URLs are read from WP settings (wp_options).
+ * Credentials are read from .env.
  *
- * This file is intentionally empty of env-var reads — do not add GRAPHQL_*
- * env variables back here. Configure everything through the WP admin settings.
+ * .env keys:
+ *   GRAPHQL_PROD_APP_ID      — production X-App-Id
+ *   GRAPHQL_PROD_API_KEY     — production X-Api-Key
+ *   GRAPHQL_STAGING_APP_ID   — staging X-App-Id
+ *   GRAPHQL_STAGING_API_KEY  — staging X-Api-Key
  */
-return [];
+return [
+    'prod_app_id'     => getenv('GRAPHQL_PROD_APP_ID')     ?: '',
+    'prod_api_key'    => getenv('GRAPHQL_PROD_API_KEY')    ?: '',
+    'staging_app_id'  => getenv('GRAPHQL_STAGING_APP_ID')  ?: '',
+    'staging_api_key' => getenv('GRAPHQL_STAGING_API_KEY') ?: '',
+];

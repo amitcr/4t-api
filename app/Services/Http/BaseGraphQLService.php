@@ -4,24 +4,23 @@ declare(strict_types=1);
 
 namespace App\Services\Http;
 
-use App\Services\Crypto\WpCryptoService;
+use App\Core\Config;
 use App\Core\Logger;
 
 /**
  * BaseGraphQLService
  *
  * Single GraphQL connection manager for the /api application.
- * All configuration is read exclusively from WP settings (wp_options table)
- * via get_settings_option() — no .env or config/graphql.php dependency.
  *
  * WP settings keys (stored under option_name = mytemp_settings):
  *   graphql_enabled              → bool   — master on/off switch
- *   graphql_endpoint_production  → string — GraphQL endpoint URL
- *   graphql_app_id               → string — encrypted X-App-Id credential
- *   graphql_api_key              → string — encrypted X-Api-Key credential
+ *   staging_mode                 → bool   — when true, use staging endpoint
+ *   graphql_endpoint_production  → string — production GraphQL endpoint URL
+ *   graphql_endpoint_staging     → string — staging GraphQL endpoint URL
  *
- * Credentials are decrypted at runtime using WpCryptoService, which replicates
- * the AES-256-CBC algorithm used by the WP plugin's MyTemperament_Crypto class.
+ * Credentials are read from .env via config/graphql.php:
+ *   GRAPHQL_PROD_APP_ID / GRAPHQL_PROD_API_KEY
+ *   GRAPHQL_STAGING_APP_ID / GRAPHQL_STAGING_API_KEY
  *
  * Usage:
  *   if (BaseGraphQLService::isEnabled()) {
@@ -38,9 +37,12 @@ class BaseGraphQLService
     /** @var array<string, string> */
     private array $headers;
 
+    /** Human-readable message from the last failed graphql() call. Null on success. */
+    private ?string $lastError = null;
+
     public function __construct()
     {
-        $this->url     = (string) get_settings_option('mytemp_settings.graphql_endpoint_production');
+        $this->url     = $this->resolveEndpointUrl();
         $this->headers = $this->buildHeaders();
     }
 
@@ -59,10 +61,25 @@ class BaseGraphQLService
      * @param  array<string, mixed> $variables Variables map passed alongside the operation.
      * @return object|null                     Decoded `data` object, or null on any failure.
      */
+    /**
+     * Returns the human-readable error message from the last failed graphql() call,
+     * or null if the last call succeeded.
+     */
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
+    }
+
     public function graphql(string $query, array $variables = []): ?object
     {
+        $this->lastError = null;
+
         if (empty($this->url)) {
-            Logger::error('BaseGraphQLService: GraphQL endpoint URL is not configured in WP settings (mytemp_settings.graphql_endpoint_production).');
+            $envKey = (bool) get_settings_option('mytemp_settings.staging_mode')
+                ? 'graphql_endpoint_staging'
+                : 'graphql_endpoint_production';
+            Logger::error("BaseGraphQLService: GraphQL endpoint URL is not configured in WP settings (mytemp_settings.{$envKey}).");
+            $this->lastError = 'The scoring service is not configured. Please contact support.';
             return null;
         }
 
@@ -73,6 +90,7 @@ class BaseGraphQLService
 
         if ($payload === false) {
             Logger::error('BaseGraphQLService: Failed to JSON-encode GraphQL payload.');
+            $this->lastError = 'Unable to process your request. Please try again.';
             return null;
         }
 
@@ -104,6 +122,7 @@ class BaseGraphQLService
                     'error' => $error,
                     'url'   => $this->url,
                 ]);
+                $this->lastError = 'Unable to reach the scoring service. Please try again.';
                 return null;
             }
 
@@ -111,14 +130,18 @@ class BaseGraphQLService
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 Logger::error('BaseGraphQLService: JSON decode failed', ['body' => $body]);
+                $this->lastError = 'Received an invalid response from the scoring service. Please try again.';
                 return null;
             }
 
             if (isset($decoded->errors) && is_array($decoded->errors)) {
+                // Use the first GraphQL error message — these are human-readable by design.
+                $firstMessage = $decoded->errors[0]->message ?? null;
                 Logger::error('BaseGraphQLService: GraphQL errors', [
                     'errors' => array_map(fn($e) => $e->message ?? '', $decoded->errors),
                     'query'  => $query,
                 ]);
+                $this->lastError = $firstMessage ?? 'Your response could not be saved. Please try again.';
                 return null;
             }
 
@@ -126,11 +149,28 @@ class BaseGraphQLService
 
         } catch (\Exception $e) {
             Logger::error('BaseGraphQLService: exception', ['message' => $e->getMessage()]);
+            $this->lastError = 'An unexpected error occurred. Please try again.';
             return null;
         }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Resolves the active GraphQL endpoint URL.
+     * Uses staging URL when staging_mode is enabled in WP settings,
+     * otherwise falls back to the production URL.
+     */
+    private function resolveEndpointUrl(): string
+    {
+        $isStaging = (bool) get_settings_option('mytemp_settings.staging_mode');
+
+        if ($isStaging) {
+            return (string) get_settings_option('mytemp_settings.graphql_endpoint_staging');
+        }
+
+        return (string) get_settings_option('mytemp_settings.graphql_endpoint_production');
+    }
 
     /**
      * Builds the headers array, decrypting credentials from WP settings.
@@ -139,12 +179,15 @@ class BaseGraphQLService
      */
     private function buildHeaders(): array
     {
-        $appId  = WpCryptoService::decrypt(
-            (string) get_settings_option('mytemp_settings.graphql_app_id')
-        );
-        $apiKey = WpCryptoService::decrypt(
-            (string) get_settings_option('mytemp_settings.graphql_api_key')
-        );
+        $isStaging = (bool) get_settings_option('mytemp_settings.staging_mode');
+
+        $appId  = $isStaging
+            ? (string) Config::get('graphql.staging_app_id')
+            : (string) Config::get('graphql.prod_app_id');
+
+        $apiKey = $isStaging
+            ? (string) Config::get('graphql.staging_api_key')
+            : (string) Config::get('graphql.prod_api_key');
 
         return [
             'Content-Type' => 'application/json',
