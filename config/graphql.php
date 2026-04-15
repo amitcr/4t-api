@@ -1,10 +1,12 @@
 <?php
-return [
-    'url'     => getenv('GRAPHQL_BASE_URL') ?: 'http://mt-scoring-staging.us-east-1.elasticbeanstalk.com/graphql',
-    'headers' => [
-        'Content-Type' => 'application/json',
-        'x-api-key'    => getenv('GRAPHQL_API_KEY') ?: getenv('SCORING_API_KEY') ?: '',
-        'x-app-id'     => getenv('GRAPHQL_APP_ID') ?: getenv('SCORING_APP_ID') ?: '',
-    ],
-    'enabled' => getenv('GRAPHQL_ENABLED') === 'true',
-];
+
+/**
+ * GraphQL configuration.
+ *
+ * All runtime values (enabled flag, endpoint URL, credentials) are read
+ * directly from WP settings (wp_options) by BaseGraphQLService at request time.
+ *
+ * This file is intentionally empty of env-var reads — do not add GRAPHQL_*
+ * env variables back here. Configure everything through the WP admin settings.
+ */
+return [];

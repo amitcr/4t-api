@@ -4,27 +4,30 @@ declare(strict_types=1);
 
 namespace App\Services\Http;
 
-use App\Core\Config;
+use App\Services\Crypto\WpCryptoService;
 use App\Core\Logger;
-use Exception;
 
 /**
  * BaseGraphQLService
  *
  * Single GraphQL connection manager for the /api application.
+ * All configuration is read exclusively from WP settings (wp_options table)
+ * via get_settings_option() — no .env or config/graphql.php dependency.
  *
- * Configuration priority (highest → lowest):
- *   1. WP settings via get_settings_option() — graphql_enabled, graphql_endpoint_production
- *   2. .env / config/graphql.php — all values including credentials
+ * WP settings keys (stored under option_name = mytemp_settings):
+ *   graphql_enabled              → bool   — master on/off switch
+ *   graphql_endpoint_production  → string — GraphQL endpoint URL
+ *   graphql_app_id               → string — encrypted X-App-Id credential
+ *   graphql_api_key              → string — encrypted X-Api-Key credential
  *
- * Credentials (graphql_app_id, graphql_api_key) are stored encrypted in WP settings
- * and cannot be decrypted in this application without the WP crypto context.
- * They are read exclusively from .env via config/graphql.php.
- * TODO: read credentials from WP settings once a shared decryption mechanism is available.
+ * Credentials are decrypted at runtime using WpCryptoService, which replicates
+ * the AES-256-CBC algorithm used by the WP plugin's MyTemperament_Crypto class.
  *
  * Usage:
- *   $client = new BaseGraphQLService();
- *   $data   = $client->graphql('query { ... }', ['var' => 'value']);
+ *   if (BaseGraphQLService::isEnabled()) {
+ *       $client = new BaseGraphQLService();
+ *       $data   = $client->graphql('mutation { ... }', ['var' => 'value']);
+ *   }
  *
  * @since 2.0
  */
@@ -37,29 +40,16 @@ class BaseGraphQLService
 
     public function __construct()
     {
-        // URL: WP setting takes priority, .env/config is the fallback.
-        $wpUrl      = get_settings_option('mytemp_settings.graphql_endpoint_production');
-        $this->url  = (!empty($wpUrl)) ? (string) $wpUrl : (string) Config::get('graphql.url');
-
-        // TODO: read app_id and api_key from WP settings once decryption of
-        //       mytemp_settings.graphql_app_id / graphql_api_key is available here.
-        $this->headers = (array) Config::get('graphql.headers');
+        $this->url     = (string) get_settings_option('mytemp_settings.graphql_endpoint_production');
+        $this->headers = $this->buildHeaders();
     }
 
     /**
-     * Returns true when GraphQL is enabled.
-     *
-     * Checks the WP setting first; falls back to config/graphql.php (GRAPHQL_ENABLED env var).
+     * Returns true when GraphQL is enabled in WP settings.
      */
     public static function isEnabled(): bool
     {
-        $wpSetting = get_settings_option('mytemp_settings.graphql_enabled');
-
-        if ($wpSetting !== null) {
-            return (bool) $wpSetting;
-        }
-
-        return Config::get('graphql.enabled') === true;
+        return (bool) get_settings_option('mytemp_settings.graphql_enabled');
     }
 
     /**
@@ -72,7 +62,7 @@ class BaseGraphQLService
     public function graphql(string $query, array $variables = []): ?object
     {
         if (empty($this->url)) {
-            Logger::error('BaseGraphQLService: GraphQL URL is not configured.');
+            Logger::error('BaseGraphQLService: GraphQL endpoint URL is not configured in WP settings (mytemp_settings.graphql_endpoint_production).');
             return null;
         }
 
@@ -134,9 +124,32 @@ class BaseGraphQLService
 
             return $decoded->data ?? null;
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             Logger::error('BaseGraphQLService: exception', ['message' => $e->getMessage()]);
             return null;
         }
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Builds the headers array, decrypting credentials from WP settings.
+     *
+     * @return array<string, string>
+     */
+    private function buildHeaders(): array
+    {
+        $appId  = WpCryptoService::decrypt(
+            (string) get_settings_option('mytemp_settings.graphql_app_id')
+        );
+        $apiKey = WpCryptoService::decrypt(
+            (string) get_settings_option('mytemp_settings.graphql_api_key')
+        );
+
+        return [
+            'Content-Type' => 'application/json',
+            'x-app-id'     => $appId,
+            'x-api-key'    => $apiKey,
+        ];
     }
 }
