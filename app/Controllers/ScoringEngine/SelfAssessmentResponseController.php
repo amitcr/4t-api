@@ -73,7 +73,13 @@ class SelfAssessmentResponseController
     {
         $data = $request->all();
         try {
-            return $this->svc->updateById($id, $data);
+            $updated = $this->svc->updateById($id, $data);
+
+            if (is_object($updated) && !empty($updated->error)) {
+                return Response::json(['message' => $updated->message], 422);
+            }
+
+            return Response::json($updated);
         } catch (RequestException $e) {
             $status = ($e->response) ? $e->response->getStatusCode() : 500;
             $body   = ($e->response) ? $e->response->json() : null;

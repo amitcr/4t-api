@@ -50,9 +50,18 @@ class SelfAssessmentResponsesService extends BaseHttpService
         return $this->post($this->endpoint, $data);
     }
 
-    // TODO: No GraphQL equivalent defined in developer guide.
+    /**
+     * Updates mostChoiceId and leastChoiceId on an existing response.
+     *
+     * GraphQL mutation: updateSelfAssessmentResponse
+     * Required keys in $data: mostChoiceId, leastChoiceId
+     */
     public function updateById($id, array $data)
     {
+        if ($this->isGraphQLEnabled()) {
+            return $this->graphqlUpdate((string) $id, $data);
+        }
+
         return $this->put("{$this->endpoint}/{$id}", $data);
     }
 
@@ -99,6 +108,26 @@ class SelfAssessmentResponsesService extends BaseHttpService
 
         // Surface the human-readable error so the controller can return it to the frontend.
         $message = $this->graphqlClient->getLastError() ?? 'Your response could not be saved. Please try again.';
+        return (object) ['error' => true, 'message' => $message];
+    }
+
+    private function graphqlUpdate(string $id, array $data): object
+    {
+        $idStr   = json_encode($id);
+        $mostId  = json_encode((string) ($data['mostChoiceId']  ?? ''));
+        $leastId = json_encode((string) ($data['leastChoiceId'] ?? ''));
+
+        $mutation = "mutation { updateSelfAssessmentResponse(id: {$idStr}, input: { mostChoiceId: {$mostId} leastChoiceId: {$leastId} }) { id } }";
+
+        $result = $this->graphqlClient->graphql($mutation);
+
+        $returnedId = $result->updateSelfAssessmentResponse->id ?? null;
+
+        if ($returnedId) {
+            return (object) ['id' => $returnedId];
+        }
+
+        $message = $this->graphqlClient->getLastError() ?? 'Your response could not be updated. Please try again.';
         return (object) ['error' => true, 'message' => $message];
     }
 
