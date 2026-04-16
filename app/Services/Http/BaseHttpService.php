@@ -13,8 +13,7 @@ class BaseHttpService
     protected $http;
 
     /**
-     * GraphQL client — non-null only when GraphQL is enabled in WP/env settings.
-     * Subclasses call $this->isGraphQLEnabled() to branch between REST and GraphQL.
+     * GraphQL client — always instantiated; all service methods use GraphQL exclusively.
      */
     protected ?BaseGraphQLService $graphqlClient = null;
 
@@ -41,24 +40,18 @@ class BaseHttpService
 
         $this->http = $request;
 
-        if (BaseGraphQLService::isEnabled()) {
-            $this->graphqlClient = new BaseGraphQLService();
-        }
-    }
-
-    /**
-     * Returns true when a GraphQL client is available (i.e. GraphQL is enabled).
-     * Use this in subclass methods to branch between REST and GraphQL paths.
-     */
-    protected function isGraphQLEnabled(): bool
-    {
-        return $this->graphqlClient !== null;
+        $this->graphqlClient = new BaseGraphQLService();
     }
 
     /**
      * Returns a placeholder response for GraphQL methods that are not yet implemented.
      * Callers see a clear signal instead of a silent null or a REST fallback.
      */
+    public function getLastError(): ?string
+    {
+        return $this->graphqlClient ? $this->graphqlClient->getLastError() : null;
+    }
+
     protected function graphqlNotImplemented(string $operation): object
     {
         return (object) [

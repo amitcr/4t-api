@@ -49,15 +49,16 @@ class SelfAssessmentResponseController
         }
     }
 
-    // POST /v1/participants (Create on the third-party API)
+    // POST /v1/self-assessment-responses
     public function store($request)
     {
         $data = $request->all();
         try {
             $created = $this->svc->create($data);
 
-            if (is_object($created) && !empty($created->error)) {
-                return Response::json(['message' => $created->message], 422);
+            if ($created === null) {
+                $message = $this->svc->getLastError() ?? 'Your response could not be saved. Please try again.';
+                return Response::json(['message' => $message], 422);
             }
 
             return Response::json($created, 201);
@@ -68,15 +69,16 @@ class SelfAssessmentResponseController
         }
     }
 
-    // PUT /v1/participants/{id}
+    // PUT /v1/self-assessment-responses/{id}
     public function update($request, $id)
     {
         $data = $request->all();
         try {
             $updated = $this->svc->updateById($id, $data);
 
-            if (is_object($updated) && !empty($updated->error)) {
-                return Response::json(['message' => $updated->message], 422);
+            if ($updated === null) {
+                $message = $this->svc->getLastError() ?? 'Your response could not be updated. Please try again.';
+                return Response::json(['message' => $message], 422);
             }
 
             return Response::json($updated);

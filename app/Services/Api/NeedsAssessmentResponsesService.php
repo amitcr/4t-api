@@ -26,71 +26,22 @@ class NeedsAssessmentResponsesService extends BaseHttpService
     // TODO: GraphQL equivalent — listNeedsAssessmentResponses not documented in detail.
     public function list(array $query = [])
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('listNeedsAssessmentResponses');
-        }
-
-        return $this->get($this->endpoint, $query);
+        return $this->graphqlNotImplemented('listNeedsAssessmentResponses');
     }
 
     // TODO: GraphQL equivalent — getNeedsAssessmentResponse not documented in detail.
     public function getById($id, $query = [])
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('getNeedsAssessmentResponse');
-        }
-
-        return $this->get("{$this->endpoint}/{$id}", $query);
+        return $this->graphqlNotImplemented('getNeedsAssessmentResponse');
     }
 
     public function create(array $data)
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlCreate($data);
-        }
-
-        return $this->post($this->endpoint, $data);
-    }
-
-    public function updateById($id, array $data)
-    {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlUpdate((string) $id, $data);
-        }
-
-        return $this->put("{$this->endpoint}/{$id}", $data);
-    }
-
-    // TODO: No GraphQL equivalent defined in developer guide.
-    public function patchById($id, array $data)
-    {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('patchNeedsAssessmentResponse');
-        }
-
-        return $this->patch("{$this->endpoint}/{$id}", $data);
-    }
-
-    public function deleteById($id)
-    {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlDelete((string) $id);
-        }
-
-        return $this->delete("{$this->endpoint}/{$id}");
-    }
-
-    // ── GraphQL private methods ───────────────────────────────────────────────
-
-    private function graphqlCreate(array $data): ?object
-    {
-        $gql = <<<'GQL'
-            mutation CreateNeedsAssessmentResponse($input: CreateNeedsAssessmentResponseInput!) {
-              createNeedsAssessmentResponse(input: $input) {
+        $gql = 'mutation CreateNeedsAssessmentResponse($input: CreateNeedsAssessmentResponseInput!) {
+            createNeedsAssessmentResponse(input: $input) {
                 id
-              }
             }
-            GQL;
+        }';
 
         $input = [
             'participantSessionId' => (string) ($data['participantSessionId'] ?? ''),
@@ -104,15 +55,13 @@ class NeedsAssessmentResponsesService extends BaseHttpService
         return $this->graphqlClient->graphql($gql, ['input' => $input]);
     }
 
-    private function graphqlUpdate(string $id, array $data): ?object
+    public function updateById($id, array $data)
     {
-        $gql = <<<'GQL'
-            mutation UpdateNeedsAssessmentResponse($id: ID!, $input: UpdateNeedsAssessmentResponseInput!) {
-              updateNeedsAssessmentResponse(id: $id, input: $input) {
+        $gql = 'mutation UpdateNeedsAssessmentResponse($id: ID!, $input: UpdateNeedsAssessmentResponseInput!) {
+            updateNeedsAssessmentResponse(id: $id, input: $input) {
                 id
-              }
             }
-            GQL;
+        }';
 
         $input = [];
 
@@ -120,17 +69,21 @@ class NeedsAssessmentResponsesService extends BaseHttpService
             $input['priority'] = (int) $data['priority'];
         }
 
-        return $this->graphqlClient->graphql($gql, ['id' => $id, 'input' => $input]);
+        return $this->graphqlClient->graphql($gql, ['id' => (string) $id, 'input' => $input]);
     }
 
-    private function graphqlDelete(string $id): ?object
+    // TODO: No GraphQL equivalent defined in developer guide.
+    public function patchById($id, array $data)
     {
-        $gql = <<<'GQL'
-            mutation DeleteNeedsAssessmentResponse($id: ID!) {
-              deleteNeedsAssessmentResponse(id: $id)
-            }
-            GQL;
+        return $this->graphqlNotImplemented('patchNeedsAssessmentResponse');
+    }
 
-        return $this->graphqlClient->graphql($gql, ['id' => $id]);
+    public function deleteById($id)
+    {
+        $gql = 'mutation DeleteNeedsAssessmentResponse($id: ID!) {
+            deleteNeedsAssessmentResponse(id: $id)
+        }';
+
+        return $this->graphqlClient->graphql($gql, ['id' => (string) $id]);
     }
 }

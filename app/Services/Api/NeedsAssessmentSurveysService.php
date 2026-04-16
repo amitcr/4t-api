@@ -22,75 +22,42 @@ class NeedsAssessmentSurveysService extends BaseHttpService
     // TODO: GraphQL equivalent not fully documented in developer guide.
     public function list(array $query = [])
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('listNeedsAssessmentSurveys');
-        }
-
-        return $this->get($this->endpoint, $query);
+        return $this->graphqlNotImplemented('listNeedsAssessmentSurveys');
     }
 
     public function getById($id, $query = [])
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlGetById((string) $id);
-        }
+        $gql = 'query GetNeedsAssessmentSurvey($id: ID!) {
+            getNeedsAssessmentSurvey(id: $id) {
+                id version choicesRequired
+                choices { id title description order }
+            }
+        }';
 
-        return $this->get("{$this->endpoint}/{$id}", $query);
+        return $this->graphqlClient->graphql($gql, ['id' => (string) $id]);
     }
 
     // TODO: No GraphQL equivalent defined in developer guide.
     public function create(array $data)
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('createNeedsAssessmentSurvey');
-        }
-
-        return $this->post($this->endpoint, $data);
+        return $this->graphqlNotImplemented('createNeedsAssessmentSurvey');
     }
 
     // TODO: No GraphQL equivalent defined in developer guide.
     public function updateById($id, array $data)
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('updateNeedsAssessmentSurvey');
-        }
-
-        return $this->put("{$this->endpoint}/{$id}", $data);
+        return $this->graphqlNotImplemented('updateNeedsAssessmentSurvey');
     }
 
     // TODO: No GraphQL equivalent defined in developer guide.
     public function patchById($id, array $data)
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('patchNeedsAssessmentSurvey');
-        }
-
-        return $this->patch("{$this->endpoint}/{$id}", $data);
+        return $this->graphqlNotImplemented('patchNeedsAssessmentSurvey');
     }
 
     // TODO: No GraphQL equivalent defined in developer guide.
     public function deleteById($id)
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('deleteNeedsAssessmentSurvey');
-        }
-
-        return $this->delete("{$this->endpoint}/{$id}");
-    }
-
-    // ── GraphQL private methods ───────────────────────────────────────────────
-
-    private function graphqlGetById(string $id): ?object
-    {
-        $gql = <<<'GQL'
-            query GetNeedsAssessmentSurvey($id: ID!) {
-              getNeedsAssessmentSurvey(id: $id) {
-                id version choicesRequired
-                choices { id title description order }
-              }
-            }
-            GQL;
-
-        return $this->graphqlClient->graphql($gql, ['id' => $id]);
+        return $this->graphqlNotImplemented('deleteNeedsAssessmentSurvey');
     }
 }

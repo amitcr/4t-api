@@ -21,88 +21,48 @@ class AssessmentEditionsService extends BaseHttpService
 
     public function list(array $query = [])
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlList($query);
-        }
+        $gql = 'query ListAssessmentEditions($filter: AssessmentEditionFilterInput, $paginate: PaginateInput) {
+            listAssessmentEditions(filter: $filter, paginate: $paginate) {
+                total
+                data { id title }
+            }
+        }';
 
-        return $this->get($this->endpoint, $query);
+        return $this->graphqlClient->graphql($gql, []);
     }
 
     public function getById($id, $query = [])
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlGetById((string) $id);
-        }
+        $gql = 'query GetAssessmentEdition($id: ID!) {
+            getAssessmentEdition(id: $id) {
+                id title
+            }
+        }';
 
-        return $this->get("{$this->endpoint}/{$id}", $query);
+        return $this->graphqlClient->graphql($gql, ['id' => (string) $id]);
     }
 
     // TODO: No GraphQL equivalent defined in developer guide.
     public function create(array $data)
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('createAssessmentEdition');
-        }
-
-        return $this->post($this->endpoint, $data);
+        return $this->graphqlNotImplemented('createAssessmentEdition');
     }
 
     // TODO: No GraphQL equivalent defined in developer guide.
     public function updateById($id, array $data)
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('updateAssessmentEdition');
-        }
-
-        return $this->put("{$this->endpoint}/{$id}", $data);
+        return $this->graphqlNotImplemented('updateAssessmentEdition');
     }
 
     // TODO: No GraphQL equivalent defined in developer guide.
     public function patchById($id, array $data)
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('patchAssessmentEdition');
-        }
-
-        return $this->patch("{$this->endpoint}/{$id}", $data);
+        return $this->graphqlNotImplemented('patchAssessmentEdition');
     }
 
     // TODO: No GraphQL equivalent defined in developer guide.
     public function deleteById($id)
     {
-        if ($this->isGraphQLEnabled()) {
-            return $this->graphqlNotImplemented('deleteAssessmentEdition');
-        }
-
-        return $this->delete("{$this->endpoint}/{$id}");
-    }
-
-    // ── GraphQL private methods ───────────────────────────────────────────────
-
-    private function graphqlList(array $query): ?object
-    {
-        $gql = <<<'GQL'
-            query ListAssessmentEditions($filter: AssessmentEditionFilterInput, $paginate: PaginateInput) {
-              listAssessmentEditions(filter: $filter, paginate: $paginate) {
-                total
-                data { id title }
-              }
-            }
-            GQL;
-
-        return $this->graphqlClient->graphql($gql, []);
-    }
-
-    private function graphqlGetById(string $id): ?object
-    {
-        $gql = <<<'GQL'
-            query GetAssessmentEdition($id: ID!) {
-              getAssessmentEdition(id: $id) {
-                id title
-              }
-            }
-            GQL;
-
-        return $this->graphqlClient->graphql($gql, ['id' => $id]);
+        return $this->graphqlNotImplemented('deleteAssessmentEdition');
     }
 }
