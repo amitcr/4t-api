@@ -60,6 +60,45 @@ class SelfAssessmentResultsService extends BaseHttpService
         return $this->graphqlClient->graphql($gql, ['id' => (string) $id]);
     }
 
+    /**
+     * Fetch the full self-assessment result for a session, including all chart fields.
+     * Used by NeedsAssessmentCompleteController for server-side chart generation.
+     *
+     * @param string $sessionId Remote participant session UUID.
+     * @return object|null First matching result object, or null on error / no data.
+     */
+    public function getBySessionId(string $sessionId): ?object
+    {
+        $gql = 'query GetSessionResult($id: ID!) {
+            getParticipantSession(id: $id) {
+                selfAssessmentResults {
+                    data {
+                        id
+                        dSocialRating dSocialRatingScore
+                        iSocialRating iSocialRatingScore
+                        sSocialRating sSocialRatingScore
+                        cSocialRating cSocialRatingScore
+                        dHistoricalRating dHistoricalRatingScore
+                        iHistoricalRating iHistoricalRatingScore
+                        sHistoricalRating sHistoricalRatingScore
+                        cHistoricalRating cHistoricalRatingScore
+                        dPreferenceRating dPreferenceRatingScore
+                        iPreferenceRating iPreferenceRatingScore
+                        sPreferenceRating sPreferenceRatingScore
+                        cPreferenceRating cPreferenceRatingScore
+                        socialRankedTemperaments
+                        historicalRankedTemperaments
+                        preferenceRankedTemperaments
+                    }
+                }
+            }
+        }';
+
+        $res = $this->graphqlClient->graphql($gql, ['id' => $sessionId]);
+
+        return $res->getParticipantSession->selfAssessmentResults->data[0] ?? null;
+    }
+
     // TODO: No GraphQL equivalent defined in developer guide.
     public function create(array $data)
     {

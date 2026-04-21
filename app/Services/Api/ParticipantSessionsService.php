@@ -129,6 +129,28 @@ class ParticipantSessionsService extends BaseHttpService
         }
     }
 
+    /**
+     * Complete the needs assessment and save all choice responses in one mutation.
+     *
+     * @param string $sessionId Remote session UUID.
+     * @param array  $responses [['choiceId' => '...', 'priority' => 1], ...]
+     * @return object|null Returns completeNeedsAssessment payload or null on error.
+     */
+    public function completeNeedsAssessmentWithChoices(string $sessionId, array $responses): ?object
+    {
+        $gql = 'mutation CompleteNeedsAssessment($id: ID!, $input: CompleteNeedsAssessmentInput!) {
+            completeNeedsAssessment(id: $id, input: $input) {
+                id
+                needsAssessmentCompletedAt
+            }
+        }';
+
+        return $this->graphqlClient->graphql($gql, [
+            'id'    => $sessionId,
+            'input' => ['responses' => $responses],
+        ]);
+    }
+
     // TODO: No GraphQL equivalent defined in developer guide.
     public function deleteById($id)
     {

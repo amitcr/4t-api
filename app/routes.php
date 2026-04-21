@@ -15,6 +15,7 @@ use App\Controllers\ParticipantSessionController;
 use App\Controllers\ScoringEngine\ParticipantController as ScoringParticipantController;
 use App\Controllers\ScoringEngine\ParticipantSessionController as ScoringParticipantSessionController;
 use App\Controllers\ScoringEngine\SelfAssessmentResponseController;
+use App\Controllers\ScoringEngine\NeedsAssessmentCompleteController;
 
 /**
  * Global/Shared middlewares can be added in Router via $router->group or by modifying Router::__construct
@@ -100,6 +101,9 @@ $router->group(['prefix' => '/v1', 'middleware' => [CorsMiddleware::class]], fun
         $r->put('/participant-sessions/{id}', [ScoringParticipantSessionController::class, 'updateSession']);
         $r->patch('/participant-sessions/{id}', [ScoringParticipantSessionController::class, 'patchSession']);
         $r->delete('/participant-sessions/{id}', [ScoringParticipantSessionController::class, 'destroySession']);
+
+        // Needs Assessment Complete (save choices + complete session + generate charts)
+        $r->post('/needs-assessment-complete', [NeedsAssessmentCompleteController::class, 'complete']);
 
         // Self Assessment Responses routes
         $r->get('/self-assessment-responses', [SelfAssessmentResponseController::class, 'index']);
