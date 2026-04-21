@@ -151,6 +151,63 @@ class ParticipantSessionsService extends BaseHttpService
         ]);
     }
 
+    /**
+     * Fetches the complete session snapshot needed to generate the PDF report.
+     * One query replaces the previous multi-step REST + GraphQL fetches.
+     *
+     * Returns the raw getParticipantSession object containing:
+     *   ->selfAssessmentResults->data[0]    (rating scores + ranked temperaments + pattern titles)
+     *   ->selfAssessmentResponses->data[]   (mostChoice/leastChoice titles)
+     *   ->needsAssessmentResponses->data[]  (choice title + priority)
+     *
+     * @param string $sessionId Remote participant session UUID.
+     * @return object|null
+     */
+    public function getPDFReportSnapshot(string $sessionId): ?object
+    {
+        $gql = 'query GetPDFReportSnapshot($id: ID!) {
+            getParticipantSession(id: $id) {
+                selfAssessmentResults {
+                    data {
+                        id
+                        dSocialRating dSocialRatingScore
+                        iSocialRating iSocialRatingScore
+                        sSocialRating sSocialRatingScore
+                        cSocialRating cSocialRatingScore
+                        dHistoricalRating dHistoricalRatingScore
+                        iHistoricalRating iHistoricalRatingScore
+                        sHistoricalRating sHistoricalRatingScore
+                        cHistoricalRating cHistoricalRatingScore
+                        dPreferenceRating dPreferenceRatingScore
+                        iPreferenceRating iPreferenceRatingScore
+                        sPreferenceRating sPreferenceRatingScore
+                        cPreferenceRating cPreferenceRatingScore
+                        preferenceRankedTemperaments
+                        socialPatternTitle
+                        historicalPatternTitle
+                        preferencePatternTitle
+                    }
+                }
+                selfAssessmentResponses {
+                    data {
+                        mostChoice { title }
+                        leastChoice { title }
+                    }
+                }
+                needsAssessmentResponses {
+                    data {
+                        priority
+                        choice { title }
+                    }
+                }
+            }
+        }';
+
+        $res = $this->graphqlClient->graphql($gql, ['id' => $sessionId]);
+
+        return $res->getParticipantSession ?? null;
+    }
+
     // TODO: No GraphQL equivalent defined in developer guide.
     public function deleteById($id)
     {

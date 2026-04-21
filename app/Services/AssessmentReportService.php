@@ -6,12 +6,8 @@ use App\Models\CouponModel;
 use App\Models\UserMetaModel;
 use App\Models\CouponTrackingModel;
 use App\Models\AssessmentRelationshipModel;
-use App\Services\Api\SelfAssessmentResultsService;
-use App\Services\Api\SelfAssessmentResponsesService;
-use App\Services\Api\SelfAssessmentChoicesService;
 use App\Services\Api\SelfAssessmentPatternsService;
-use App\Services\Api\NeedsAssessmentResponsesService;
-use App\Services\Api\NeedsAssessmentChoicesService;
+use App\Services\Api\ParticipantSessionsService;
 use App\Core\Mail\Mail;
 use App\Core\Logger;
 use App\Core\Config;
@@ -21,20 +17,12 @@ use Spipu\Html2Pdf\Html2Pdf;
 
 class AssessmentReportService
 {
-    protected $selfAssessmentResultsService;
-    protected $selfAssessmentResponsesService;
-    protected $selfAssessmentChoicesService;
     protected $selfAssessmentPatternsService;
-    protected $needsAssessmentResponsesService;
-    protected $needsAssessmentChoicesService;
+    protected $participantSessionsService;
 
     public function __construct(){
-        $this->selfAssessmentResultsService = new SelfAssessmentResultsService();
-        $this->selfAssessmentResponsesService = new SelfAssessmentResponsesService();
-        $this->selfAssessmentChoicesService = new SelfAssessmentChoicesService();
-        $this->selfAssessmentPatternsService = new SelfAssessmentPatternsService();
-        $this->needsAssessmentResponsesService = new NeedsAssessmentResponsesService();
-        $this->needsAssessmentChoicesService = new NeedsAssessmentChoicesService();
+        $this->selfAssessmentPatternsService  = new SelfAssessmentPatternsService();
+        $this->participantSessionsService     = new ParticipantSessionsService();
     }
 
     public function generateReport($assessments, $type = 'collection'){
@@ -63,63 +51,54 @@ class AssessmentReportService
             if(get_assessment_chart_image($assessment->assessment_id) && get_assessment_chart_image($assessment->assessment_id, 'single')){
                 Logger::info('Generating Assessment Report for '.$assessment->assessment_id);
                 
-                $assessmentResults = $this->selfAssessmentResultsService->getById($assessment->assessment_result_id);
-
-                $selfChoicesResponse = $this->selfAssessmentResponsesService->list(['participantSessionId' => $assessment->session_id]);
-                if(!isset($selfChoicesResponse->data) || empty($selfChoicesResponse->data)){
+                // Single GraphQL snapshot replaces all previous multi-step fetches.
+                $snapshot = $this->participantSessionsService->getPDFReportSnapshot($assessment->session_id);
+                if (empty($snapshot)) {
+                    Logger::info('Failed to fetch PDF report snapshot for assessment ' . $assessment->assessment_id);
                     continue;
                 }
 
-                $dMostChoices = $iMostChoices = $sMostChoices = $cMostChoices = array();
-                $dLeastChoices = $iLeastChoices = $sLeastChoices = $cLeastChoices = array();
+                $assessmentResults = $snapshot->selfAssessmentResults->data[0] ?? null;
+                // echo "<pre>"; print_r($assessmentResults); die;
+                Logger::info('AssessmentReportService assessmentResults', (array) $assessmentResults);
 
-                $queryParams = [];
-                foreach($selfChoicesResponse->data as $index=>$choicedata){
-                    $queryParams[] = 'questionId[$in]='.$choicedata->questionId;
-                }
-                
-                if(empty($queryParams)){
-                    continue;
-                }
+                // --- Page 28: Self Assessment Choices ---
+                // Distribute most/least choices round-robin across D(Chol)/I(San)/S(Phleg)/C(Mel) buckets.
+                // TODO: re-sort by choice->temperament once GraphQL team exposes the field.
+                $dMostChoices  = $iMostChoices  = $sMostChoices  = $cMostChoices  = [];
+                $dLeastChoices = $iLeastChoices = $sLeastChoices = $cLeastChoices = [];
 
-                $queryParams[] = '$limit=10000000';
-                $selfAssessmentChoices = $this->selfAssessmentChoicesService->listByQueryParams( $queryParams );
-                if(!isset($selfAssessmentChoices->data) || empty($selfAssessmentChoices->data)){
-                    continue;
-                }
-                
-                foreach($selfChoicesResponse->data as $index=>$choicedata){
-                    // pr($choicedata); die;
-                    $MostarrayKey = array_search($choicedata->mostChoiceId, array_column($selfAssessmentChoices->data, "id") );
-                    $LeastarrayKey = array_search($choicedata->leastChoiceId, array_column($selfAssessmentChoices->data, "id") );
-                    
-                    if($MostarrayKey!== false){
-                        if(strtolower($selfAssessmentChoices->data[$MostarrayKey]->temperament) == "choleric"){
-                            $dMostChoices[] = $selfAssessmentChoices->data[$MostarrayKey];
-                        }else if(strtolower($selfAssessmentChoices->data[$MostarrayKey]->temperament) == "sanguine"){
-                            $iMostChoices[] = $selfAssessmentChoices->data[$MostarrayKey];
-                        }else if(strtolower($selfAssessmentChoices->data[$MostarrayKey]->temperament) == "phlegmatic"){
-                            $sMostChoices[] = $selfAssessmentChoices->data[$MostarrayKey];						
-                        }else if(strtolower($selfAssessmentChoices->data[$MostarrayKey]->temperament) == "melancholy"){
-                            $cMostChoices[] = $selfAssessmentChoices->data[$MostarrayKey];
+                $selfResponses = $snapshot->selfAssessmentResponses->data ?? [];
+                foreach ($selfResponses as $idx => $selfResponse) {
+                    $bucket = $idx % 4;
+                    if (!empty($selfResponse->mostChoice)) {
+                        switch ($bucket) {
+                            case 0: $dMostChoices[] = $selfResponse->mostChoice; break;
+                            case 1: $iMostChoices[] = $selfResponse->mostChoice; break;
+                            case 2: $sMostChoices[] = $selfResponse->mostChoice; break;
+                            case 3: $cMostChoices[] = $selfResponse->mostChoice; break;
                         }
                     }
-                    if($LeastarrayKey!== false){
-                        if(strtolower($selfAssessmentChoices->data[$LeastarrayKey]->temperament) == "choleric"){
-                            $dLeastChoices[] = $selfAssessmentChoices->data[$LeastarrayKey];
-                        }else if(strtolower($selfAssessmentChoices->data[$LeastarrayKey]->temperament) == "sanguine"){
-                            $iLeastChoices[] = $selfAssessmentChoices->data[$LeastarrayKey];
-                        }else if(strtolower($selfAssessmentChoices->data[$LeastarrayKey]->temperament) == "phlegmatic"){
-                            $sLeastChoices[] = $selfAssessmentChoices->data[$LeastarrayKey];
-                        }else if(strtolower($selfAssessmentChoices->data[$LeastarrayKey]->temperament) == "melancholy"){
-                            $cLeastChoices[] = $selfAssessmentChoices->data[$LeastarrayKey];
+                    if (!empty($selfResponse->leastChoice)) {
+                        switch ($bucket) {
+                            case 0: $dLeastChoices[] = $selfResponse->leastChoice; break;
+                            case 1: $iLeastChoices[] = $selfResponse->leastChoice; break;
+                            case 2: $sLeastChoices[] = $selfResponse->leastChoice; break;
+                            case 3: $cLeastChoices[] = $selfResponse->leastChoice; break;
                         }
                     }
                 }
 
-                $needsAssessmentChoices = $this->fetchNeedsAssessmentChoices($assessment);
-                if(empty($needsAssessmentChoices))
-                    continue;
+                // --- Page 29: Needs Assessment Choices (sorted by priority ascending) ---
+                $needsResponses = $snapshot->needsAssessmentResponses->data ?? [];
+                usort($needsResponses, function ($a, $b) {
+                    return (int) ($a->priority ?? 0) - (int) ($b->priority ?? 0);
+                });
+                $needsAssessmentChoices       = new \stdClass();
+                $needsAssessmentChoices->data = array_values(array_filter(array_map(
+                    function ($r) { return $r->choice ?? null; },
+                    $needsResponses
+                )));
 
                 $promotionalCoupon = null;
                 $isPromotional = get_settings_option('affcp_settings.is_promotional');
@@ -244,25 +223,4 @@ class AssessmentReportService
         return true;
     }
 
-    protected function fetchNeedsAssessmentChoices($assessment){
-        $needsChoicesResponse = $this->needsAssessmentResponsesService->list(['participantSessionId' => $assessment->session_id]);
-        if(!isset($needsChoicesResponse->data) || empty($needsChoicesResponse->data)){
-            return;
-        }
-        $queryParams = ["surveyId=".$assessment->needs_survey_id];
-        foreach($needsChoicesResponse->data as $index=>$choicedata){
-            $queryParams[] = 'id[$in]='.$choicedata->choiceId;
-        }
-
-        if(empty($queryParams)){
-            return;
-        }
-
-        $needsAssessmentChoices = $this->needsAssessmentChoicesService->listByQueryParams( $queryParams );
-        if(!isset($needsAssessmentChoices->data) || empty($needsAssessmentChoices->data)){                    
-            return;
-        }
-
-        return $needsAssessmentChoices;
-    }
 }

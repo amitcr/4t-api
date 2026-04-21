@@ -5,12 +5,14 @@ if((isset($override) && $override == true)){
 	$sec_content = ucwords(strtolower($assessmentResults->overrides->details->rankedTemperaments[1]));
 	$trd_content = ucwords(strtolower($assessmentResults->overrides->details->rankedTemperaments[2]));
 }else{
-	$first_content = ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[0]) );
-	$sec_content = ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[1]));
-	$trd_content = ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[2]));
+	$_disc_to_temperament = ['D' => 'Choleric', 'I' => 'Sanguine', 'S' => 'Phlegmatic', 'C' => 'Melancholy'];
+	$_ranked     = $assessmentResults->preferenceRankedTemperaments ?? [];
+	$first_content = $_disc_to_temperament[ strtoupper( $_ranked[0] ?? '' ) ] ?? '';
+	$sec_content   = $_disc_to_temperament[ strtoupper( $_ranked[1] ?? '' ) ] ?? '';
+	$trd_content   = $_disc_to_temperament[ strtoupper( $_ranked[2] ?? '' ) ] ?? '';
 }
 
-$report_pattern = (isset($override) && $override == true) ? ucwords(strtolower($assessmentResults->overrides->details->patternTitle)):  ucwords(strtolower($assessmentResults->details->preferencePatternTitle));
+$report_pattern = (isset($override) && $override == true) ? ucwords(strtolower($assessmentResults->overrides->details->patternTitle)) : ucwords(strtolower( $assessmentResults->preferencePatternTitle ?? '' ));
 
 /*
 // D-I = Executive
@@ -82,6 +84,8 @@ $report_pattern = "Analyst";
 /*
 */
 
+$Top_one = $Top_two = $Top_trd = '';
+$Top_one_label = $Top_two_label = $Top_trd_label = '';
 $first_temperament = $second_temperament = '';
 if($first_content=="Choleric"){
 	$Top_one = "D";
