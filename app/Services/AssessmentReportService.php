@@ -59,8 +59,6 @@ class AssessmentReportService
                 }
 
                 $assessmentResults = $snapshot->selfAssessmentResults->data[0] ?? null;
-                // echo "<pre>"; print_r($assessmentResults); die;
-                Logger::info('AssessmentReportService assessmentResults', (array) $assessmentResults);
 
                 // --- Page 28: Self Assessment Choices ---
                 // Distribute most/least choices round-robin across D(Chol)/I(San)/S(Phleg)/C(Mel) buckets.
