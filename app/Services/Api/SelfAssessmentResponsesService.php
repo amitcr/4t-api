@@ -67,7 +67,7 @@ class SelfAssessmentResponsesService extends BaseHttpService
      */
     public function updateById($id, array $data)
     {
-        $query = 'mutation($id: String!, $mostChoiceId: String!, $leastChoiceId: String!) {
+        $query = 'mutation($id: ID!, $mostChoiceId: String!, $leastChoiceId: String!) {
             updateSelfAssessmentResponse(id: $id, input: {
                 mostChoiceId: $mostChoiceId
                 leastChoiceId: $leastChoiceId
