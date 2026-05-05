@@ -190,8 +190,8 @@ class ParticipantSessionsService extends BaseHttpService
                 }
                 selfAssessmentResponses {
                     data {
-                        mostChoice { title }
-                        leastChoice { title }
+                        mostChoice { title temperament }
+                        leastChoice { title temperament }
                     }
                 }
                 needsAssessmentResponses {

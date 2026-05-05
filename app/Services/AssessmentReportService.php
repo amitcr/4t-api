@@ -61,28 +61,27 @@ class AssessmentReportService
                 $assessmentResults = $snapshot->selfAssessmentResults->data[0] ?? null;
 
                 // --- Page 28: Self Assessment Choices ---
-                // Distribute most/least choices round-robin across D(Chol)/I(San)/S(Phleg)/C(Mel) buckets.
-                // TODO: re-sort by choice->temperament once GraphQL team exposes the field.
                 $dMostChoices  = $iMostChoices  = $sMostChoices  = $cMostChoices  = [];
                 $dLeastChoices = $iLeastChoices = $sLeastChoices = $cLeastChoices = [];
-
+                
                 $selfResponses = $snapshot->selfAssessmentResponses->data ?? [];
-                foreach ($selfResponses as $idx => $selfResponse) {
-                    $bucket = $idx % 4;
+                foreach ($selfResponses as $selfResponse) {
                     if (!empty($selfResponse->mostChoice)) {
-                        switch ($bucket) {
-                            case 0: $dMostChoices[] = $selfResponse->mostChoice; break;
-                            case 1: $iMostChoices[] = $selfResponse->mostChoice; break;
-                            case 2: $sMostChoices[] = $selfResponse->mostChoice; break;
-                            case 3: $cMostChoices[] = $selfResponse->mostChoice; break;
+                        $temperament = strtoupper($selfResponse->leastChoice->temperament ?? '');
+                        switch ($temperament) {
+                            case 'D': $dMostChoices[] = $selfResponse->mostChoice; break;
+                            case 'I': $iMostChoices[] = $selfResponse->mostChoice; break;
+                            case 'S': $sMostChoices[] = $selfResponse->mostChoice; break;
+                            case 'C': $cMostChoices[] = $selfResponse->mostChoice; break;
                         }
                     }
                     if (!empty($selfResponse->leastChoice)) {
-                        switch ($bucket) {
-                            case 0: $dLeastChoices[] = $selfResponse->leastChoice; break;
-                            case 1: $iLeastChoices[] = $selfResponse->leastChoice; break;
-                            case 2: $sLeastChoices[] = $selfResponse->leastChoice; break;
-                            case 3: $cLeastChoices[] = $selfResponse->leastChoice; break;
+                        $temperament = strtoupper($selfResponse->leastChoice->temperament ?? '');
+                        switch ($temperament) {
+                            case 'D': $dLeastChoices[] = $selfResponse->leastChoice; break;
+                            case 'I': $iLeastChoices[] = $selfResponse->leastChoice; break;
+                            case 'S': $sLeastChoices[] = $selfResponse->leastChoice; break;
+                            case 'C': $cLeastChoices[] = $selfResponse->leastChoice; break;
                         }
                     }
                 }
