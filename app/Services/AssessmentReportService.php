@@ -25,18 +25,42 @@ class AssessmentReportService
         $this->participantSessionsService     = new ParticipantSessionsService();
     }
 
-    public function generateReport($assessments, $type = 'collection'){
+    public function generateReport($assessments, $attr = [], $type = 'collection'){
         Logger::info("generateReport Request came from " . $type . " source", (array) $assessments);
         $chartImageMissingAssessments = [];
         foreach($assessments as $assessment){
+            Logger::info('Assessment loop started');
             $participantName = ucfirst(get_assessment_participant_name($assessment));
             $participantFirstName = ucfirst(get_assessment_participant_name($assessment, 'first'));
-           
-            $personalReportName = $assessment->assessment_id."-".trim(str_replace(" ", "-", $participantName)).'-'. date("m-d-Y", strtotime($assessment->created_at)).".pdf";
+            
+            $override = false;;
+            if(!empty($attr)){
+                if(isset($attr['override']) && !empty($attr['override'])){
+                    $override = true;
+                }
+            }
+            Logger::info('Assessment override Status '. $assessment->assessment_id .' ' .$override);
 
-            $personalFilePath = PROJECT_ROOT.'/assessments/pdf/'.$personalReportName;
+            // review_id identifies the review ROW; its per-assessment `version` drives the
+            // PDF/chart "-v{n}" naming and the coach override entry.
+            $reviewId = (isset($attr['review_id']) && !empty($attr['review_id'])) ? (int) $attr['review_id'] : null;
+            $coach_override_id = '';
+            $reviewVersion = null;
+            if ($override && !empty($reviewId)) {
+                $reviewRow = \App\Models\AssessmentReviewModel::find($reviewId);
+                $coach_override_id = ($reviewRow && !empty($reviewRow->coach_override_id)) ? $reviewRow->coach_override_id : '';
+                $reviewVersion     = ($reviewRow && !empty($reviewRow->version)) ? (int) $reviewRow->version : null;
+            }
 
-            if($assessment->pdf_status == 1 && file_exists($personalFilePath))
+            $versionSuffix = ($override && !empty($reviewVersion)) ? '-v'.$reviewVersion : '';
+            $personalReportName = $assessment->assessment_id."-".trim(str_replace(" ", "-", $participantName)).'-'. date("m-d-Y", strtotime($assessment->created_at)).$versionSuffix.".pdf";
+
+            $personalFilePath = ($override == true) ? PROJECT_ROOT.'/assessments/override/pdf/'.$personalReportName : PROJECT_ROOT.'/assessments/pdf/'.$personalReportName;
+
+            if( ($override == false) && ($assessment->pdf_status == 1 && file_exists($personalFilePath)) )
+                continue;
+            
+            if( ($override == true) && (file_exists($personalFilePath)) )
                 continue;
 
             
@@ -48,7 +72,7 @@ class AssessmentReportService
                 continue;
             }
 
-            if(get_assessment_chart_image($assessment->assessment_id) && get_assessment_chart_image($assessment->assessment_id, 'single')){
+            if(get_assessment_chart_image($assessment->assessment_id, '', '', $override, $reviewVersion) && get_assessment_chart_image($assessment->assessment_id, 'single', '', $override, $reviewVersion)){
                 Logger::info('Generating Assessment Report for '.$assessment->assessment_id);
                 
                 // Single GraphQL snapshot replaces all previous multi-step fetches.
@@ -58,6 +82,7 @@ class AssessmentReportService
                     continue;
                 }
 
+                Logger::info("snapshot selfAssessmentResults ", (array) $snapshot);
                 $assessmentResults = $snapshot->selfAssessmentResults->data[0] ?? null;
 
                 // --- Page 28: Self Assessment Choices ---
@@ -115,7 +140,16 @@ class AssessmentReportService
                 $personalReportHtml = ob_get_clean();
 
                 $this->createPDFReportFile($personalFilePath, $personalReportHtml, ['layout' => array(215,307), 'spacing' => array(0,0,0,0)]);
-                
+
+                // Mark this validation's report as generated on the review row.
+                if ($override && !empty($reviewId)) {
+                    \App\Models\AssessmentReviewModel::where('id', $reviewId)->update([
+                        'pdf_generated' => 1,
+                        'pdf_filename'  => $personalReportName,
+                        'updated_at'    => date('Y-m-d H:i:s'),
+                    ]);
+                }
+
                 $holdReport = false;
                 // Valdiate If Manager Report Required
                 $assessmentCoupon = CouponTrackingModel::where(['assessment_id' => $assessment->assessment_id, 'usage_status' => 'completed'])->orderBy('id', 'ASC')->first();
@@ -181,10 +215,19 @@ class AssessmentReportService
                 $assessment->pdf_status = 1;
                 $assessment->save();
             }else{
-                // TODO: 
-                $chartImageMissingAssessments[] = $assessment;
+                // Capture the version context so the alert email links to the correct (original/validated) chart.
+                $chartImageMissingAssessments[] = [
+                    'assessment' => $assessment,
+                    'override'   => $override,
+                    'review_id'  => $reviewId,
+                ];
             }
         }
+
+        // Ids of assessments whose charts were missing — used by the job worker to HOLD + retry.
+        $missingAssessmentIds = array_map(function ($item) {
+            return $item['assessment']->assessment_id;
+        }, $chartImageMissingAssessments);
 
         if(!empty($chartImageMissingAssessments)){
             $sendEmail = false;
@@ -194,13 +237,15 @@ class AssessmentReportService
                 $sendEmail = true;
             }
             if($sendEmail == false)
-                return;
+                return $missingAssessmentIds;
 
             $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : get_settings_option('admin_email');
             if(!empty($sendTo)){
                 Mail::send($sendTo, 'Urgent: Assessment Charts are missing', 'assessment-images-missing', ['assessments' => $chartImageMissingAssessments]);
             }
         }
+
+        return $missingAssessmentIds;
     }
 
     protected function createPDFReportFile(string $filePath = '', string $html = '', array $attributes = []){

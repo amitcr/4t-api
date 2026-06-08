@@ -27,13 +27,23 @@ class Queue
     }
 
     /**
-     * Fetch the next available pending job (transaction safe)
+     * Fetch the next runnable job (transaction safe).
+     *
+     * Picks pending jobs, plus held jobs whose hold window has elapsed. A job is only
+     * runnable once `available_at` is due (NULL or in the past) so held jobs wait out
+     * their retry window instead of being re-run immediately.
      *
      * @return JobModel|null
      */
     public function fetchNext(): ?JobModel
     {
-        $job = JobModel::where('status', 'pending')
+        $now = Carbon::now();
+
+        $job = JobModel::whereIn('status', ['pending', 'held'])
+            ->where(function ($q) use ($now) {
+                $q->whereNull('available_at')
+                  ->orWhere('available_at', '<=', $now);
+            })
             ->orderBy('id', 'ASC')
             ->lockForUpdate()
             ->first();
@@ -65,6 +75,27 @@ class Queue
         $job->update([
             'status'     => 'failed',
             'failed_at'  => Carbon::now(),
+        ]);
+    }
+
+    /**
+     * Hold a job for a configurable window, then let it retry automatically.
+     *
+     * Used when a report job can't complete yet because chart images are missing.
+     * The job is released early (available_at set to now) when the admin generates
+     * the chart manually — see mytemp_release_held_report_jobs() on the WP side.
+     */
+    public function markHeld(JobModel $job): void
+    {
+        $hours = (int) Config::get('app.report_hold_hours');
+        if ($hours <= 0) {
+            $hours = 6;
+        }
+
+        $job->update([
+            'status'       => 'held',
+            'available_at' => Carbon::now()->addHours($hours),
+            'reserved_at'  => null,
         ]);
     }
 }

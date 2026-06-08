@@ -186,6 +186,15 @@ class ParticipantSessionsService extends BaseHttpService
                         socialPatternTitle
                         historicalPatternTitle
                         preferencePatternTitle
+                        coachOverrides{
+                            id
+							patternTitle
+							rankedTemperaments
+							dRating dRatingScore   
+							iRating iRatingScore 
+							sRating sRatingScore
+							cRating cRatingScore
+						}
                     }
                 }
                 selfAssessmentResponses {

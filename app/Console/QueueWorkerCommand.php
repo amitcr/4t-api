@@ -3,6 +3,7 @@ namespace App\Console;
 
 use App\Core\CommandInterface;
 use App\Core\Queue;
+use App\Core\ChartImagesMissingException;
 
 class QueueWorkerCommand implements CommandInterface
 {
@@ -29,6 +30,11 @@ class QueueWorkerCommand implements CommandInterface
                     // Mark job as completed
                     $queue->markCompleted($job);
                     echo "Job {$job->id} completed.\n";
+                } catch (ChartImagesMissingException $e) {
+                    // Not a failure: charts aren't ready. Hold and retry later
+                    // (released early when the admin generates the chart).
+                    $queue->markHeld($job);
+                    echo "Job {$job->id} held: {$e->getMessage()}\n";
                 } catch (\Throwable $e) {
                     // Mark job as failed
                     $queue->markFailed($job);
