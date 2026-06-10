@@ -161,53 +161,72 @@ class AssessmentReportService
                         $managerReportName = $managerFilePath = '';
                         if($coupon->manager_report == 1){
                             Logger::info("Genrating Assessment Manager Report ");
-                            $managerReportName = $assessment->assessment_id."-".trim(str_replace(" ", "-", $participantName)).'-'. date("m-d-Y", strtotime($assessment->created_at))."-Manager-Report.pdf";
-                            $managerFilePath = PROJECT_ROOT.'/assessments/pdf/'.$managerReportName;
+
+                            // Versioned manager override report per validation review; original keeps the fixed name.
+                            $managerVersionSuffix = ($override && !empty($reviewVersion)) ? '-v'.$reviewVersion : '';
+                            $managerReportName = $assessment->assessment_id."-".trim(str_replace(" ", "-", $participantName)).'-'. date("m-d-Y", strtotime($assessment->created_at))."-Manager-Report".$managerVersionSuffix.".pdf";
+                            $managerFilePath = ($override == true) ? PROJECT_ROOT.'/assessments/override/pdf/'.$managerReportName : PROJECT_ROOT.'/assessments/pdf/'.$managerReportName;
                             if(!file_exists($managerFilePath)){
-                                
-                                // Render the template with PHP variables
+
+                                // Render the template with PHP variables ($override + $coach_override_id already in scope).
                                 ob_start();
                                 include PROJECT_ROOT . '/api/resources/views/template-manager-report.php';
                                 $managerReportHtml = ob_get_clean();
 
                                 $this->createPDFReportFile($managerFilePath, $managerReportHtml, ['layout' => 'A4', 'spacing' => array(10, 5, 10, 5)]);
 
-                                $managerEmails = CouponManagerModel::with('user')->where('coupon_id', $coupon->coupon_id)->get()->pluck('user.user_email')->toArray();
-                                if(!empty($managerEmails)){
-                                    $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : implode(",",$managerEmails);
-                                    if(!empty($sendTo)){
-                                        Mail::send($sendTo, 'New Assessment Profile', 'manager-assessment-notification', ['assessment' => $assessment, 'coupon' => $coupon, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName , 'managerFilePath' => $managerFilePath, 'managerReportName' => $managerReportName, "participantName" => $participantName]);
-                                    }            
+                                // Stamp the review row for override (validated) manager reports.
+                                if ($override && !empty($reviewId)) {
+                                    \App\Models\AssessmentReviewModel::where('id', $reviewId)->update([
+                                        'manager_pdf_generated' => 1,
+                                        'manager_pdf_filename'  => $managerReportName,
+                                        'updated_at'            => date('Y-m-d H:i:s'),
+                                    ]);
+                                }
+
+                                // Manager email only on the original run — no notification when a coach overrides.
+                                if (!$override) {
+                                    $managerEmails = CouponManagerModel::with('user')->where('coupon_id', $coupon->coupon_id)->get()->pluck('user.user_email')->toArray();
+                                    if(!empty($managerEmails)){
+                                        $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : implode(",",$managerEmails);
+                                        if(!empty($sendTo)){
+                                            Mail::send($sendTo, 'New Assessment Profile', 'manager-assessment-notification', ['assessment' => $assessment, 'coupon' => $coupon, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName , 'managerFilePath' => $managerFilePath, 'managerReportName' => $managerReportName, "participantName" => $participantName]);
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $coupon->user->user_email;
-                        if(!empty($sendTo)){
-                            Mail::send($sendTo, 'New Assessment Profile', 'affiliate-company-assessment-notification', ['assessment' => $assessment, 'coupon' => $coupon, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName , 'managerFilePath' => $managerFilePath, 'managerReportName' => $managerReportName, "participantName" => $participantName]);
-                        }
-
-                        if(!empty($coupon->other_recipients)){
-                            $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $coupon->other_recipients;
+                        if(!$override){
+                            $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $coupon->user->user_email;
                             if(!empty($sendTo)){
-                                Mail::send($sendTo, 'New Assessment Profile', 'assessment-notification-recipients', ['assessment' => $assessment, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName, "participantName" => $participantName]);
-                            }   
+                                Mail::send($sendTo, 'New Assessment Profile', 'affiliate-company-assessment-notification', ['assessment' => $assessment, 'coupon' => $coupon, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName , 'managerFilePath' => $managerFilePath, 'managerReportName' => $managerReportName, "participantName" => $participantName]);
+                            }
+
+                            if(!empty($coupon->other_recipients)){
+                                $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $coupon->other_recipients;
+                                if(!empty($sendTo)){
+                                    Mail::send($sendTo, 'New Assessment Profile', 'assessment-notification-recipients', ['assessment' => $assessment, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName, "participantName" => $participantName]);
+                                }   
+                            }
                         }
                     }
                 }
 
-                if($holdReport == false){
-                    $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $assessment->user->user_email;
-                    if(!empty($sendTo)){
-                        Mail::send($sendTo, 'Your MyTemperament Assessment Profile', 'participant-assessment-notification', ['assessment' => $assessment, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName, "participantName" => $participantName]);
+                if(!$override){
+                    if($holdReport == false){
+                        $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $assessment->user->user_email;
+                        if(!empty($sendTo)){
+                            Mail::send($sendTo, 'Your MyTemperament Assessment Profile', 'participant-assessment-notification', ['assessment' => $assessment, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName, "participantName" => $participantName]);
+                        }
                     }
-                }
 
-                if($assessment->payment->end_price > 0){
-                    $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $assessment->user->user_email;
-                    if(!empty($sendTo)){
-                        $assessmentCoupons = CouponTrackingModel::where(['assessment_id' => $assessment->assessment_id, 'usage_status' => 'completed'])->orderBy('id', 'ASC')->get();
-                        Mail::send($sendTo, 'Thank you for your payment', 'assessment-payment-notification', ['assessment' => $assessment, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName, 'assessmentCoupons' => $assessmentCoupons, 'promotionalCoupon' => $promotionalCoupon, "participantName" => $participantName, "holdReport" => $holdReport]);
+                    if($assessment->payment->end_price > 0){
+                        $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $assessment->user->user_email;
+                        if(!empty($sendTo)){
+                            $assessmentCoupons = CouponTrackingModel::where(['assessment_id' => $assessment->assessment_id, 'usage_status' => 'completed'])->orderBy('id', 'ASC')->get();
+                            Mail::send($sendTo, 'Thank you for your payment', 'assessment-payment-notification', ['assessment' => $assessment, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName, 'assessmentCoupons' => $assessmentCoupons, 'promotionalCoupon' => $promotionalCoupon, "participantName" => $participantName, "holdReport" => $holdReport]);
+                        }
                     }
                 }
 

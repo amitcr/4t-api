@@ -94,55 +94,15 @@ $report_pattern = "Analyst";
 $Top_one = $Top_two = $Top_trd = '';
 $Top_one_label = $Top_two_label = $Top_trd_label = '';
 $first_temperament = $second_temperament = '';
-if($first_content=="Choleric"){
-	$Top_one = "D";
-	$Top_one_label = "Chol";
-    $first_temperament = "Choleric";
-}else if($first_content=="Sanguine"){
-	$Top_one = "I";
-    $Top_one_label = "San";
-    $first_temperament = "Sanguine";
-}else if($first_content=="Phlegmatic"){
-	$Top_one = "S";
-    $Top_one_label = "Phleg";
-    $first_temperament = "Phlegmatic";
-}else if($first_content=="Melancholy"){
-	$Top_one = "C";
-    $Top_one_label = "Mel";
-    $first_temperament = "Melancholy";
-}
 
-if($sec_content=="Choleric"){
-	$Top_two = "D";
-    $Top_two_label = "Chol";
-    $second_temperament = "Choleric";
-}else if($sec_content=="Sanguine"){
-	$Top_two = "I";
-    $Top_two_label = "San";
-    $second_temperament = "Sanguine";
-}else if($sec_content=="Phlegmatic"){
-	$Top_two = "S";
-    $Top_two_label = "Phleg";
-    $second_temperament = "Phlegmatic";
-}else if($sec_content=="Melancholy"){
-	$Top_two = "C";
-    $Top_two_label = "Mel";
-    $second_temperament = "Melancholy";
-}
+// Ranked temperaments are already D/I/S/C — resolve their parts via the shared helper.
+$_p1 = mytemp_temperament_parts($_ranked[0] ?? '');
+$_p2 = mytemp_temperament_parts($_ranked[1] ?? '');
+$_p3 = mytemp_temperament_parts($_ranked[2] ?? '');
 
-if($trd_content=="Choleric"){
-	$Top_trd = "D";
-    $Top_trd_label = "Chol";
-}else if($trd_content=="Sanguine"){
-	$Top_trd = "I";
-    $Top_trd_label = "San";
-}else if($trd_content=="Phlegmatic"){
-	$Top_trd = "S";
-    $Top_trd_label = "Phleg";
-}else if($trd_content=="Melancholy"){
-	$Top_trd = "C";
-    $Top_trd_label = "Mel";
-}
+$Top_one = $_p1['letter']; $Top_one_label = $_p1['label']; $first_temperament  = $_p1['name'];
+$Top_two = $_p2['letter']; $Top_two_label = $_p2['label']; $second_temperament = $_p2['name'];
+$Top_trd = $_p3['letter']; $Top_trd_label = $_p3['label'];
 
 
 $block_class = $Top_one ."_".$Top_two."_block";

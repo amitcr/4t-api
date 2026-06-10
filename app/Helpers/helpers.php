@@ -264,6 +264,35 @@ if(!function_exists('get_assessment_chart_image')){
     }
 }
 
+if (!function_exists('mytemp_temperament_parts')) {
+    /**
+     * Resolve a temperament's parts from a DISC letter (D/I/S/C) or a temperament name.
+     *
+     * Shared by the report templates so the letter/label/name mapping lives in one place.
+     *
+     * @param  string $temperament  'D'|'I'|'S'|'C' or 'Choleric'|'Sanguine'|'Phlegmatic'|'Melancholy'.
+     * @return array{letter:string,label:string,name:string}
+     */
+    function mytemp_temperament_parts($temperament = '') {
+        $map = [
+            'D' => ['letter' => 'D', 'label' => 'Chol',  'name' => 'Choleric'],
+            'I' => ['letter' => 'I', 'label' => 'San',   'name' => 'Sanguine'],
+            'S' => ['letter' => 'S', 'label' => 'Phleg', 'name' => 'Phlegmatic'],
+            'C' => ['letter' => 'C', 'label' => 'Mel',   'name' => 'Melancholy'],
+        ];
+
+        // Allow a full temperament name as input too.
+        $names = ['CHOLERIC' => 'D', 'SANGUINE' => 'I', 'PHLEGMATIC' => 'S', 'MELANCHOLY' => 'C'];
+
+        $key = strtoupper(trim((string) $temperament));
+        if (isset($names[$key])) {
+            $key = $names[$key];
+        }
+
+        return isset($map[$key]) ? $map[$key] : ['letter' => '', 'label' => '', 'name' => ''];
+    }
+}
+
 if(!function_exists('get_assessment_participant_name')){
     function get_assessment_participant_name($assessment, $nameType = 'full'){
         if(empty($assessment))

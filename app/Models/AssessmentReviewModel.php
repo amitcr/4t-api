@@ -22,8 +22,11 @@ class AssessmentReviewModel extends BaseModel
         'coach_review_id',
         'coach_override_id',
         'status',
+        'is_active',
         'pdf_generated',
         'pdf_filename',
+        'manager_pdf_generated',
+        'manager_pdf_filename',
         'override_notes',
         'created_by',
         'created_at',
@@ -32,8 +35,10 @@ class AssessmentReviewModel extends BaseModel
     ];
 
     protected $casts = [
-        'version'       => 'integer',
-        'pdf_generated' => 'integer',
+        'version'               => 'integer',
+        'is_active'             => 'integer',
+        'pdf_generated'         => 'integer',
+        'manager_pdf_generated' => 'integer',
         'created_at'    => 'datetime',
         'validated_at'  => 'datetime',
         'updated_at'    => 'datetime',
