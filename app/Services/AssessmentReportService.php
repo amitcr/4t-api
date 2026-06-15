@@ -159,33 +159,24 @@ class AssessmentReportService
                     if(!empty($coupon)){                        
                         $holdReport = $coupon->hold_report ??0;
                         $managerReportName = $managerFilePath = '';
-                        if($coupon->manager_report == 1){
+
+                        // Manager report applies when the coupon enables it OR the assessment was marked
+                        // manager-enabled by an on-demand "Create Manager Report" request (so future
+                        // validations keep generating their manager version too).
+                        $managerReportEnabled = ($coupon->manager_report == 1)
+                            || ( ! empty($assessment->details) && ! empty($assessment->details->manager_report_enabled) );
+
+                        if($managerReportEnabled){
                             Logger::info("Genrating Assessment Manager Report ");
 
-                            // Versioned manager override report per validation review; original keeps the fixed name.
-                            $managerVersionSuffix = ($override && !empty($reviewVersion)) ? '-v'.$reviewVersion : '';
-                            $managerReportName = $assessment->assessment_id."-".trim(str_replace(" ", "-", $participantName)).'-'. date("m-d-Y", strtotime($assessment->created_at))."-Manager-Report".$managerVersionSuffix.".pdf";
-                            $managerFilePath = ($override == true) ? PROJECT_ROOT.'/assessments/override/pdf/'.$managerReportName : PROJECT_ROOT.'/assessments/pdf/'.$managerReportName;
-                            if(!file_exists($managerFilePath)){
+                            // Single source of manager-report generation (also used by GenerateManagerReportJob).
+                            $managerResult = $this->generateManagerReport($assessment, $override, ($reviewRow ?? null), $snapshot);
+                            if (is_array($managerResult)) {
+                                $managerReportName = $managerResult['name'];
+                                $managerFilePath   = $managerResult['path'];
 
-                                // Render the template with PHP variables ($override + $coach_override_id already in scope).
-                                ob_start();
-                                include PROJECT_ROOT . '/api/resources/views/template-manager-report.php';
-                                $managerReportHtml = ob_get_clean();
-
-                                $this->createPDFReportFile($managerFilePath, $managerReportHtml, ['layout' => 'A4', 'spacing' => array(10, 5, 10, 5)]);
-
-                                // Stamp the review row for override (validated) manager reports.
-                                if ($override && !empty($reviewId)) {
-                                    \App\Models\AssessmentReviewModel::where('id', $reviewId)->update([
-                                        'manager_pdf_generated' => 1,
-                                        'manager_pdf_filename'  => $managerReportName,
-                                        'updated_at'            => date('Y-m-d H:i:s'),
-                                    ]);
-                                }
-
-                                // Manager email only on the original run — no notification when a coach overrides.
-                                if (!$override) {
+                                // Manager email only on the original run, and only when just generated.
+                                if (!$override && !empty($managerResult['generated'])) {
                                     $managerEmails = CouponManagerModel::with('user')->where('coupon_id', $coupon->coupon_id)->get()->pluck('user.user_email')->toArray();
                                     if(!empty($managerEmails)){
                                         $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : implode(",",$managerEmails);
@@ -265,6 +256,78 @@ class AssessmentReportService
         }
 
         return $missingAssessmentIds;
+    }
+
+    /**
+     * Generate a single manager-report PDF (original or a specific validated review version).
+     *
+     * Single source of manager-report generation — called inline by generateReport() and by
+     * GenerateManagerReportJob() for the on-demand all-versions flow.
+     *
+     * @param object      $assessment Assessment model.
+     * @param bool        $override   True for a validated (override) version.
+     * @param object|null $review     Review row (for version + coach_override_id) when $override.
+     * @param object|null $snapshot   Optional pre-fetched PDF snapshot (avoids a second GraphQL call).
+     * @return array{name:string,path:string,generated:bool}|false
+     */
+    public function generateManagerReport($assessment, $override = false, $review = null, $snapshot = null)
+    {
+        $participantName      = ucfirst(get_assessment_participant_name($assessment));
+        $participantFirstName = ucfirst(get_assessment_participant_name($assessment, 'first'));
+
+        // Version + override entry come from the review (only for validated versions).
+        $reviewId          = ($override && $review && !empty($review->id)) ? (int) $review->id : null;
+        $reviewVersion     = ($override && $review && !empty($review->version)) ? (int) $review->version : null;
+        $coach_override_id = ($override && $review && !empty($review->coach_override_id)) ? $review->coach_override_id : '';
+
+        $managerVersionSuffix = ($override && !empty($reviewVersion)) ? '-v'.$reviewVersion : '';
+        $managerReportName    = $assessment->assessment_id."-".trim(str_replace(" ", "-", $participantName)).'-'. date("m-d-Y", strtotime($assessment->created_at))."-Manager-Report".$managerVersionSuffix.".pdf";
+        $managerFilePath      = ($override == true) ? PROJECT_ROOT.'/assessments/override/pdf/'.$managerReportName : PROJECT_ROOT.'/assessments/pdf/'.$managerReportName;
+
+        // Idempotent — skip if this version's manager report already exists.
+        if (file_exists($managerFilePath)) {
+            return ['name' => $managerReportName, 'path' => $managerFilePath, 'generated' => false];
+        }
+
+        // Fetch the snapshot if the caller didn't pass one (e.g. the on-demand job).
+        if (empty($snapshot)) {
+            $snapshot = $this->participantSessionsService->getPDFReportSnapshot($assessment->session_id);
+        }
+        if (empty($snapshot)) {
+            Logger::info('Manager report generation: failed to fetch snapshot for assessment ' . $assessment->assessment_id);
+            return false;
+        }
+
+        $assessmentResults = $snapshot->selfAssessmentResults->data[0] ?? null;
+
+        // Needs Assessment Choices (sorted by priority ascending) — consumed by the template.
+        $needsResponses = $snapshot->needsAssessmentResponses->data ?? [];
+        usort($needsResponses, function ($a, $b) {
+            return (int) ($a->priority ?? 0) - (int) ($b->priority ?? 0);
+        });
+        $needsAssessmentChoices       = new \stdClass();
+        $needsAssessmentChoices->data = array_values(array_filter(array_map(
+            function ($r) { return $r->choice ?? null; },
+            $needsResponses
+        )));
+
+        // Render the template ($override + $coach_override_id + the result/choices are in scope).
+        ob_start();
+        include PROJECT_ROOT . '/api/resources/views/template-manager-report.php';
+        $managerReportHtml = ob_get_clean();
+
+        $this->createPDFReportFile($managerFilePath, $managerReportHtml, ['layout' => 'A4', 'spacing' => array(10, 5, 10, 5)]);
+
+        // Stamp the review row for validated (override) manager reports.
+        if ($override && !empty($reviewId)) {
+            \App\Models\AssessmentReviewModel::where('id', $reviewId)->update([
+                'manager_pdf_generated' => 1,
+                'manager_pdf_filename'  => $managerReportName,
+                'updated_at'            => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        return ['name' => $managerReportName, 'path' => $managerFilePath, 'generated' => true];
     }
 
     protected function createPDFReportFile(string $filePath = '', string $html = '', array $attributes = []){
