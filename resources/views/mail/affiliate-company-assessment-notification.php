@@ -122,11 +122,11 @@
                                                 </p>
                                                 <p>
                                                     <?php if(file_exists($personalFilePath)){ ?>
-                                                        <a href="<?=get_settings_option('home').'/assessments/pdf/'.$personalReportName?>" download="download" target="_blank" style="font-size: 18px; font-family:'Open Sans', sans-serif !important;padding: 10px 20px;line-height: normal;border-radius: 1px!important;color: #fff;background-color: #007bff;border-color: #007bff;text-decoration:none;text-transform: uppercase;">Download Personal Report</a>
+                                                        <a href="<?=get_settings_option('home').'/assessments/pdf/'.$personalReportName?>" download="download" target="_blank" style="font-size: 18px; font-family:'Open Sans', sans-serif !important;padding: 10px 20px;line-height: normal;border-radius: 1px!important;color: #fff;background-color: #007bff;border-color: #007bff;text-decoration:none;text-transform: uppercase;display: inline-block;text-align: center;vertical-align: top;margin: 0 8px 10px 0;">Download Personal Report</a>
                                                     <?php } ?>
 
                                                     <?php if(file_exists($managerFilePath)){ ?>
-                                                        <a href="<?=get_settings_option('home').'/assessments/pdf/'.$managerReportName?>" download="download" target="_blank" style="font-size: 18px; font-family:'Open Sans', sans-serif !important;padding: 10px 20px;line-height: normal;border-radius: 1px!important;color: #fff;background-color: #00b0f0;border-color: #00b0f0;text-decoration:none;text-transform: uppercase;display: inline-block;text-align: center;">Download Manager Report</a>
+                                                        <a href="<?=get_settings_option('home').'/assessments/pdf/'.$managerReportName?>" download="download" target="_blank" style="font-size: 18px; font-family:'Open Sans', sans-serif !important;padding: 10px 20px;line-height: normal;border-radius: 1px!important;color: #fff;background-color: #00b0f0;border-color: #00b0f0;text-decoration:none;text-transform: uppercase;display: inline-block;text-align: center;vertical-align: top;margin: 0 8px 10px 0;">Download Manager Report</a>
                                                     <?php } ?>
                                                 </p>
                                             </td>

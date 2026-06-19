@@ -12,6 +12,7 @@ use App\Core\Mail\Mail;
 use App\Core\Logger;
 use App\Core\Config;
 use Carbon\Carbon;
+use App\Models\CouponManagerModel;
 
 use Spipu\Html2Pdf\Html2Pdf;
 
@@ -82,7 +83,7 @@ class AssessmentReportService
                     continue;
                 }
 
-                Logger::info("snapshot selfAssessmentResults ", (array) $snapshot);
+                // Logger::info("snapshot selfAssessmentResults ", (array) $snapshot);
                 $assessmentResults = $snapshot->selfAssessmentResults->data[0] ?? null;
 
                 // --- Page 28: Self Assessment Choices ---
