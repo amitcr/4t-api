@@ -167,7 +167,32 @@
                                             </th>
                                         </tr>
                                     </thead>
-                                    <?php $global_static_price = get_settings_option('mytemp_settings.global_static_price'); ?>
+                                    <?php
+                                // Determine the correct sticker price based on assessment type.
+                                // For manager coupons use the coupon's own global_price (the authoritative
+                                // list price for that coupon). For standard assessments use global_static_price.
+                                $isManagerAssessment = false;
+                                $managerCoupon       = null;
+                                if (isset($assessmentCoupons) && $assessmentCoupons->isNotEmpty()) {
+                                    foreach ($assessmentCoupons as $cr) {
+                                        if (!empty($cr->coupon->manager_report)) {
+                                            $isManagerAssessment = true;
+                                            $managerCoupon       = $cr->coupon;
+                                            break;
+                                        }
+                                    }
+                                }
+                                $assessment_price = (float) get_settings_option('mytemp_settings.assessment_price');
+                                if ($isManagerAssessment) {
+                                    $list_price = (float) $managerCoupon->global_price;
+                                } else {
+                                    $list_price = (float) get_settings_option('mytemp_settings.global_static_price');
+                                    // Fallback: if global_static_price is not configured, use what was actually paid.
+                                    if (empty($list_price)) {
+                                        $list_price = (float) $assessment->payment->end_price;
+                                    }
+                                }
+                                ?>
                                     <tbody>
                                         <tr>
                                             <td valign="top" align="left" style="padding:12px 8px;border-collapse:collapse;border-bottom:1px solid #d3d3d3">
@@ -177,21 +202,22 @@
                                                 <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">1</p>
                                             </td>
                                             <td valign="top" style="padding:12px 8px;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3" align="center">
-                                                <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;"> 
+                                                <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
                                                     <?=date("m-d-Y", strtotime($assessment->payment->payment_datetime))?>
                                                 </p>
                                             </td>
                                             <td style="padding:12px 8px;text-align:right;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3">
-                                                <p style="text-align:right;margin-top: 0px;margin-bottom: 5px;font-family:'Open Sans', sans-serif;font-size:14px;line-height:14px;color:#343a40">
-                                                    <?="$".number_format( $global_static_price, 2 )?>
+                                                <p style="text-align:right;margin-top: 0px;margin-bottom: 5px;font-family: Helvetica, sans-serif;font-size:14px;line-height:14px;color:#343a40">
+                                                    <?="$".number_format($list_price, 2)?>
                                                 </p>
                                             </td>
                                         </tr>
 
-                                        <?php 
-                                        $assessment_price = get_settings_option('mytemp_settings.assessment_price');
-                                        if(!empty($global_static_price) && $global_static_price > $assessment_price){
-                                            $global_static_discount = $global_static_price - $assessment_price;
+                                        <?php
+                                        // Platform discount row: only for standard assessments where the
+                                        // sale price (assessment_price) is lower than the sticker price.
+                                        if (!$isManagerAssessment && $list_price > $assessment_price) {
+                                            $platform_discount = $list_price - $assessment_price;
                                         ?>
                                             <tr>
                                                 <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
@@ -200,7 +226,7 @@
                                                 <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
                                                     <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
                                                         <strong style="color:#000; font-weight:bold;">
-                                                            <?="-$".number_format( $global_static_discount, 2)?>
+                                                            <?="-$".number_format($platform_discount, 2)?>
                                                         </strong>
                                                     </p>
                                                 </td>
@@ -212,32 +238,35 @@
                                                 <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
                                                     <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
                                                         <strong style="color:#000; font-weight:bold;">
-                                                            <?="$".number_format( $assessment_price,2)?>
+                                                            <?="$".number_format($assessment_price, 2)?>
                                                         </strong>
                                                     </p>
                                                 </td>
                                             </tr>
                                         <?php } ?>
-                                        
-                                        <?php 
-                                        if(isset($assessmentCoupons) && $assessmentCoupons->isNotEmpty()){
-                                            foreach($assessmentCoupons as $index=>$couponRow){
+
+                                        <?php
+                                        if (isset($assessmentCoupons) && $assessmentCoupons->isNotEmpty()) {
+                                            foreach ($assessmentCoupons as $couponRow) {
+                                                $couponDiscount = (float) $couponRow->coupon->global_price - (float) $couponRow->coupon->end_price;
+                                                $isUpgrade = !empty($couponRow->coupon->upgrade_code);
+                                                $label = $isUpgrade ? 'Upgrade Code' : 'Code';
                                                 ?>
                                                 <tr>
                                                     <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
                                                         <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">
-                                                            Code (<strong style="color:#64bf79; font-wight: bold;"><?=$couponRow->coupon->coupon_code?></strong>) Applied:
+                                                            <?=$label?> (<strong style="color:#64bf79; font-weight: bold;"><?=$couponRow->coupon->coupon_code?></strong>) Applied:
                                                         </p>
                                                     </td>
                                                     <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
                                                         <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
                                                             <strong style="color:#000; font-weight:bold;">
-                                                                <?="-$".number_format( ($couponRow->coupon->global_price - $couponRow->coupon->end_price), 2)?>
+                                                                <?="-$".number_format($couponDiscount, 2)?>
                                                             </strong>
                                                         </p>
                                                     </td>
                                                 </tr>
-                                                <?php 
+                                                <?php
                                             }
                                         }
                                         ?>
