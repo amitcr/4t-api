@@ -89,6 +89,15 @@ class SelfAssessmentResultsService extends BaseHttpService
                         socialRankedTemperaments
                         historicalRankedTemperaments
                         preferenceRankedTemperaments
+                        coachOverrides{
+							id
+							patternTitle
+							rankedTemperaments
+							dRating dRatingScore   
+							iRating iRatingScore 
+							sRating sRatingScore
+							cRating cRatingScore
+						}
                     }
                 }
             }
