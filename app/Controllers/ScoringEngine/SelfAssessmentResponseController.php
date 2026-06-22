@@ -2,6 +2,7 @@
 namespace App\Controllers\ScoringEngine;
 
 use App\Core\Response;
+use App\Services\Api\ParticipantSessionsService;
 use App\Services\Api\SelfAssessmentResponsesService;
 use Illuminate\Http\Client\RequestException;
 
@@ -52,7 +53,35 @@ class SelfAssessmentResponseController
     // POST /v1/self-assessment-responses
     public function store($request)
     {
-        $data = $request->all();
+        $data                 = $request->all();
+        $participantSessionId = (string) ($data['participantSessionId'] ?? '');
+        $questionPath         = (string) ($data['questionPath'] ?? $data['questionId'] ?? '');
+
+        // Upsert guard: if the scoring engine already has a response for this questionPath
+        // (e.g. the client lost the responseId and is re-POSTing), update it instead of
+        // creating a duplicate row.
+        if ($participantSessionId !== '' && $questionPath !== '') {
+            try {
+                $snapshot  = (new ParticipantSessionsService())->getPDFReportSnapshot($participantSessionId);
+                $responses = $snapshot->selfAssessmentResponses->data ?? [];
+
+                foreach ($responses as $existing) {
+                    if ((string) ($existing->questionPath ?? '') === $questionPath) {
+                        $updated = $this->svc->updateById($existing->id, $data);
+
+                        if ($updated === null) {
+                            $message = $this->svc->getLastError() ?? 'Your response could not be updated. Please try again.';
+                            return Response::json(['message' => $message], 422);
+                        }
+
+                        return Response::json($updated, 200);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Snapshot fetch failed — fall through to create()
+            }
+        }
+
         try {
             $created = $this->svc->create($data);
 

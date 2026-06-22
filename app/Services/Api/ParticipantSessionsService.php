@@ -198,11 +198,15 @@ class ParticipantSessionsService extends BaseHttpService
                     }
                 }
                 selfAssessmentResponses {
-                    data {
-                        mostChoice { title temperament }
-                        leastChoice { title temperament }
-                    }
-                }
+					data {
+						id
+						mostChoiceId
+						leastChoiceId
+						questionPath
+						mostChoice { title temperament }
+						leastChoice { title temperament }
+					}
+				}
                 needsAssessmentResponses {
                     data {
                         priority
