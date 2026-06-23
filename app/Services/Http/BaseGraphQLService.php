@@ -13,7 +13,6 @@ use App\Core\Logger;
  * Single GraphQL connection manager for the /api application.
  *
  * WP settings keys (stored under option_name = mytemp_settings):
- *   graphql_enabled              → bool   — master on/off switch
  *   staging_mode                 → bool   — when true, use staging endpoint
  *   graphql_endpoint_production  → string — production GraphQL endpoint URL
  *   graphql_endpoint_staging     → string — staging GraphQL endpoint URL
@@ -23,10 +22,8 @@ use App\Core\Logger;
  *   GRAPHQL_STAGING_APP_ID / GRAPHQL_STAGING_API_KEY
  *
  * Usage:
- *   if (BaseGraphQLService::isEnabled()) {
- *       $client = new BaseGraphQLService();
- *       $data   = $client->graphql('mutation { ... }', ['var' => 'value']);
- *   }
+ *   $client = new BaseGraphQLService();
+ *   $data   = $client->graphql('mutation { ... }', ['var' => 'value']);
  *
  * @since 2.0
  */
@@ -44,14 +41,6 @@ class BaseGraphQLService
     {
         $this->url     = $this->resolveEndpointUrl();
         $this->headers = $this->buildHeaders();
-    }
-
-    /**
-     * Returns true when GraphQL is enabled in WP settings.
-     */
-    public static function isEnabled(): bool
-    {
-        return (bool) get_settings_option('mytemp_settings.graphql_enabled');
     }
 
     /**
