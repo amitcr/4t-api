@@ -29,15 +29,20 @@ class ValidateCoupons implements CommandInterface
         foreach($coupons as $coupon){
             $unused_charges = 0;
             $notes = '';
+            $settleUsageLimit = false;
+            $settleMiniLimit = false;
             $usage_counter = CouponTrackingModel::where(['coupon_id' => $coupon->coupon_id])->whereIn('usage_status', ['assigned', 'completed'])->count();
+            $parent_usage_counter = $usage_counter; // preserved: $usage_counter is reused inside the upgrade-codes loop below
             // print_r($coupon); die;
             if($coupon->affiliate->user_id == $coupon->user_id){
                 if ($coupon->mini_report == 1) {
+                    $settleMiniLimit = true;
                     $credits_charged = $coupon->mini_usage_limit * abs($coupon->mini_price);
 					$credits_used = $usage_counter * abs($coupon->mini_price);
 					$unused_charges = ($credits_charged - $credits_used);
                     $notes = 'Credits Reversed to your account after ' . $coupon->coupon_code . ' mini report coupon code has been expired.';
                 }else if($coupon->affiliate_share < 0){
+                    $settleUsageLimit = true;
                     $credits_charged = $coupon->usage_limit * abs($coupon->affiliate_share);
                     $credits_used = $usage_counter * abs($coupon->affiliate_share);
                     // echo $credits_charged.' and '.$credits_used; die;
@@ -48,6 +53,7 @@ class ValidateCoupons implements CommandInterface
                 
             }else if(!empty($coupon->company->user_id == $coupon->user_id)){
                 if($coupon->discount_amount > 0){
+                    $settleUsageLimit = true;
                     $credits_charged = $coupon->usage_limit * abs($coupon->discount_amount);
                     $credits_used = $usage_counter * abs($coupon->discount_amount);
                     $unused_charges = $credits_charged - $credits_used;
@@ -106,13 +112,32 @@ class ValidateCoupons implements CommandInterface
                             AffiliateModel::where('affiliate_id', $upgradeCoupon->affiliate_id)->increment('unused_credits', $unused_charges);
 
                             CouponTrackingModel::where(['coupon_id' => $upgradeCoupon->coupon_id, 'usage_status' => 'pending'])->update(['usage_status' => 'expired']);
+
+                            // Settle this upgrade code's limit to its used count and expire it,
+                            // so its refunded portion is removed and it is not picked up by the
+                            // auto-recharge cron (which only selects status='active').
+                            if ($upgradeCoupon->usage_limit > $usage_counter) {
+                                $upgradeCoupon->usage_limit = $usage_counter;
+                            }
+                            $upgradeCoupon->status = 'expired';
+                            $upgradeCoupon->save();
                         }
                     }
                 }
             }
 
+            // Settle the credit-charged limit down to what was actually used, so the
+            // refunded (reversed) unused portion is removed and the affiliate/company
+            // sees the real consumed limit when editing the code later. Reduce-only.
+            if ($settleMiniLimit && $coupon->mini_usage_limit > $parent_usage_counter) {
+                $coupon->mini_usage_limit = $parent_usage_counter;
+            }
+            if ($settleUsageLimit && $coupon->usage_limit > $parent_usage_counter) {
+                $coupon->usage_limit = $parent_usage_counter;
+            }
+
             $coupon->status = 'expired';
-            $coupon->save();            
+            $coupon->save();
         }
         // Logger::info('Cron coupons:expire-status completed');
     }

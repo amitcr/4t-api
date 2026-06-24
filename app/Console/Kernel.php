@@ -13,6 +13,8 @@ use App\Console\Commands\AbandonedAssessmentFollowUp;
 use App\Console\Commands\ExportAssessmentStats;
 use App\Console\Commands\GenerateAssessmentReport;
 use App\Console\Commands\DeleteDuplicateAssessments;
+use App\Console\Commands\ResyncCouponUsageCount;
+use App\Console\Commands\MiniUsageReminder;
 use App\Console\QueueWorkerCommand;
 
 class Kernel extends CronKernel
@@ -36,7 +38,9 @@ class Kernel extends CronKernel
         $schedule->command('assessments:generate-report')->everyMinute();
         $schedule->command('assessments:delete-duplicates')->dailyAt('06:00')->timezone('UTC');
         $schedule->command('assessments:sync-stats')->dailyAt('06:05')->timezone('UTC');
-        
+        $schedule->command('coupons:resync-usage-count')->dailyAt('06:10')->timezone('UTC');
+        $schedule->command('emails:mini-usage-reminder')->dailyAt('16:05')->timezone('UTC');
+
     }
 
     protected function commands()
@@ -53,6 +57,8 @@ class Kernel extends CronKernel
         $this->register(ExportAssessmentStats::class);
         $this->register(GenerateAssessmentReport::class);
         $this->register(DeleteDuplicateAssessments::class);
+        $this->register(ResyncCouponUsageCount::class);
+        $this->register(MiniUsageReminder::class);
 
         // QueueWorker can be registered here
         $this->register(QueueWorkerCommand::class);
