@@ -9,6 +9,7 @@ use App\Models\AssessmentRelationshipModel;
 use App\Models\CouponTrackingModel;
 use App\Models\AssessmentModel;
 use App\Models\AssessmentPaymentModel;
+use App\Models\ReferralModel;
 use App\Models\UserModel;
 use App\Models\UserMetaModel;
 use App\Core\Logger;
@@ -48,6 +49,13 @@ class DeleteDuplicateAssessments implements CommandInterface
                         // 2. Bulk delete related data
                         AssessmentRelationshipModel::whereIn('participant_id', $participantIds)->delete();
                         CouponTrackingModel::whereIn('participant_id', $participantIds)->delete();
+                        // Remove referral rows for the assessments being deleted so
+                        // the Referrals report count stays equal to the (now smaller)
+                        // filtered assessments listing. Covers rows where the purged
+                        // participant is the referred taker or the referring parent.
+                        ReferralModel::whereIn('participant_id', $participantIds)
+                            ->orWhereIn('referred_by', $participantIds)
+                            ->delete();
                         AssessmentModel::whereIn('participant_id', $participantIds)->delete();
                         AssessmentPaymentModel::whereIn('participant_id', $participantIds)->delete();
 
@@ -61,6 +69,19 @@ class DeleteDuplicateAssessments implements CommandInterface
                 });
             }
         }
+
+        // Sweep any orphan referral rows whose assessment no longer exists, whatever
+        // deletion path removed it (historical purges, manual deletes, etc.). This
+        // keeps the Referrals report — which INNER JOINs referrals to assessments —
+        // consistent even for orphans created before this cleanup existed.
+        $prefix           = DB::connection()->getTablePrefix();
+        $referralsTable   = $prefix . (new ReferralModel)->getTable();
+        $assessmentsTable = $prefix . (new AssessmentModel)->getTable();
+        DB::statement(
+            "DELETE r FROM `{$referralsTable}` r
+             LEFT JOIN `{$assessmentsTable}` a ON a.assessment_id = r.assessment_id
+             WHERE r.assessment_id IS NOT NULL AND a.assessment_id IS NULL"
+        );
 
     }
 

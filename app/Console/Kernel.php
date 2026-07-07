@@ -13,6 +13,7 @@ use App\Console\Commands\AbandonedAssessmentFollowUp;
 use App\Console\Commands\ExportAssessmentStats;
 use App\Console\Commands\GenerateAssessmentReport;
 use App\Console\Commands\DeleteDuplicateAssessments;
+use App\Console\Commands\PurgeOrphanReferrals;
 use App\Console\QueueWorkerCommand;
 
 class Kernel extends CronKernel
@@ -53,6 +54,9 @@ class Kernel extends CronKernel
         $this->register(ExportAssessmentStats::class);
         $this->register(GenerateAssessmentReport::class);
         $this->register(DeleteDuplicateAssessments::class);
+
+        // One-time backfill (manual run only — intentionally not scheduled).
+        $this->register(PurgeOrphanReferrals::class);
 
         // QueueWorker can be registered here
         $this->register(QueueWorkerCommand::class);
