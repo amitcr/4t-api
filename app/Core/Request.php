@@ -9,6 +9,9 @@ class Request
     public $body;
     public $raw;
 
+    /** @var array|object|null Decoded JWT payload, attached by JwtMiddleware (read as an array). */
+    public $tokendata = null;
+
     public function __construct()
     {
         $this->method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
