@@ -90,7 +90,10 @@ class AssessmentModel extends BaseModel
         return $query->where('needs_assessment_status', 'completed')
             ->where('assessment_status', 'completed')
             ->whereBetween('modified_at', [$start, $end])
-            ->whereNull(DB::raw("JSON_UNQUOTE(JSON_EXTRACT(details, '$.subscribed_at'))"))
+            // Guard against rows whose `details` is empty-string / invalid JSON (not NULL):
+            // JSON_EXTRACT on those raises MySQL error 3141. Substitute '{}' so the extract
+            // is always valid; a missing/invalid `details` then reads as "not yet subscribed".
+            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(IF(JSON_VALID(details), details, '{}'), '$.subscribed_at')) IS NULL")
             ->orderBy('modified_at', 'ASC');
     }
 }
