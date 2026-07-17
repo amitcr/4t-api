@@ -2,7 +2,6 @@
 namespace App\Controllers\ScoringEngine;
 
 use App\Core\Response;
-use App\Services\Api\ParticipantSessionsService;
 use App\Services\Api\SelfAssessmentResponsesService;
 use Illuminate\Http\Client\RequestException;
 
@@ -53,44 +52,23 @@ class SelfAssessmentResponseController
     // POST /v1/self-assessment-responses
     public function store($request)
     {
-        $data                 = $request->all();
-        $participantSessionId = (string) ($data['participantSessionId'] ?? '');
-        $questionPath         = (string) ($data['questionPath'] ?? $data['questionId'] ?? '');
+        $data = $request->all();
 
-        // Upsert guard: if the scoring engine already has a response for this questionPath
-        // (e.g. the client lost the responseId and is re-POSTing), update it instead of
-        // creating a duplicate row.
-        if ($participantSessionId !== '' && $questionPath !== '') {
-            try {
-                $snapshot  = (new ParticipantSessionsService())->getPDFReportSnapshot($participantSessionId);
-                $responses = $snapshot->selfAssessmentResponses->data ?? [];
-
-                foreach ($responses as $existing) {
-                    if ((string) ($existing->questionPath ?? '') === $questionPath) {
-                        $updated = $this->svc->updateById($existing->id, $data);
-
-                        if ($updated === null) {
-                            $message = $this->svc->getLastError() ?? 'Your response could not be updated. Please try again.';
-                            return Response::json(['message' => $message], 422);
-                        }
-
-                        return Response::json($updated, 200);
-                    }
-                }
-            } catch (\Throwable $e) {
-                // Snapshot fetch failed — fall through to create()
-            }
-        }
-
+        // Idempotent upsert keyed by (participantSessionId, questionPath): one round-trip
+        // creates or updates the response, so no duplicate-check snapshot is needed.
         try {
-            $created = $this->svc->create($data);
+            $saved = $this->svc->save($data);
 
-            if ($created === null) {
+            if ($saved === null) {
                 $message = $this->svc->getLastError() ?? 'Your response could not be saved. Please try again.';
                 return Response::json(['message' => $message], 422);
             }
 
-            return Response::json($created, 201);
+            // Normalize to a transport-neutral shape — never leak the GraphQL structure
+            // to the browser. The client only needs the response id to reuse on re-saves.
+            $responseId = $saved->saveSelfAssessmentResponse->response->id ?? null;
+
+            return Response::json(['responseId' => $responseId], 200);
         } catch (RequestException $e) {
             $status = ($e->response) ? $e->response->getStatusCode() : 500;
             $body   = ($e->response) ? $e->response->json() : null;

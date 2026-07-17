@@ -12,6 +12,7 @@ use App\Services\Http\BaseHttpService;
  * Handles self-assessment response CRUD via GraphQL.
  *
  * GraphQL mutations:
+ *   - saveSelfAssessmentResponse  (idempotent upsert; preferred)
  *   - createSelfAssessmentResponse
  *   - updateSelfAssessmentResponse
  *   - deleteSelfAssessmentResponse
@@ -32,6 +33,46 @@ class SelfAssessmentResponsesService extends BaseHttpService
     public function getById($id, $query = [])
     {
         return $this->graphqlNotImplemented('getSelfAssessmentResponse');
+    }
+
+    /**
+     * Idempotently creates or updates a self-assessment response in one round-trip.
+     *
+     * Keyed by (participantSessionId, questionPath): the scoring engine creates the
+     * row when absent, updates it when the choices changed, and no-ops when unchanged.
+     * This removes the previous "fetch snapshot → check for an existing response →
+     * create-or-update" dance that guarded against the duplicate-response error.
+     *
+     * Returns the raw GraphQL `data` object ({ saveSelfAssessmentResponse: { outcome,
+     * response { id, ... } } }) or null on error (see getLastError()). Callers that
+     * expose this to the browser MUST normalize it — never leak the GraphQL shape.
+     *
+     * Required keys in $data: participantSessionId, questionPath, mostChoiceId, leastChoiceId
+     */
+    public function save(array $data)
+    {
+        $query = 'mutation SaveSelfAnswer($input: SaveSelfAssessmentResponseInput!) {
+            saveSelfAssessmentResponse(input: $input) {
+                outcome
+                response {
+                    id
+                    questionPath
+                    mostChoiceId
+                    leastChoiceId
+                }
+            }
+        }';
+
+        $variables = [
+            'input' => [
+                'participantSessionId' => (string) ($data['participantSessionId'] ?? ''),
+                'questionPath'         => (string) ($data['questionPath'] ?? $data['questionId'] ?? ''),
+                'mostChoiceId'         => (string) ($data['mostChoiceId']  ?? ''),
+                'leastChoiceId'        => (string) ($data['leastChoiceId'] ?? ''),
+            ],
+        ];
+
+        return $this->graphqlClient->graphql($query, $variables);
     }
 
     /**
