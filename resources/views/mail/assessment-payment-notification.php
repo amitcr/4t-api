@@ -211,12 +211,17 @@
                                             </tr>
                                         <?php } ?>
 
-                                        <?php if ($breakdown['discount'] > 0) { ?>
+                                        <?php
+                                        // One row per applied code, including any redeemed upgrade. Zero-value
+                                        // rows are shown so the participant sees the code they started under.
+                                        // The ?? keeps the receipt intact if a long-running queue worker still
+                                        // holds an older OrderPricingService.
+                                        foreach (($breakdown['discounts'] ?? []) as $discountRow) { ?>
                                             <tr>
                                                 <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
                                                     <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">
-                                                        <?php if (!empty($breakdown['discount_codes'])) { ?>
-                                                            <?=$breakdown['discount_code_label']?> (<strong style="color:#64bf79; font-weight: bold;"><?=htmlspecialchars(implode(', ', $breakdown['discount_codes']), ENT_QUOTES, 'UTF-8')?></strong>) Applied:
+                                                        <?php if (!empty($discountRow['code'])) { ?>
+                                                            <?=!empty($discountRow['is_upgrade']) ? 'Upgrade Code' : 'Code'?> (<strong style="color:#64bf79; font-weight: bold;"><?=htmlspecialchars($discountRow['code'], ENT_QUOTES, 'UTF-8')?></strong>) Applied:
                                                         <?php } else { ?>
                                                             Discount
                                                         <?php } ?>
@@ -225,7 +230,7 @@
                                                 <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
                                                     <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
                                                         <strong style="color:#000; font-weight:bold;">
-                                                            <?="-$".number_format($breakdown['discount'], 2)?>
+                                                            <?="-$".number_format((float) $discountRow['amount'], 2)?>
                                                         </strong>
                                                     </p>
                                                 </td>

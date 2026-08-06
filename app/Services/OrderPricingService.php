@@ -47,10 +47,13 @@ class OrderPricingService
             ],
         ];
 
-        $codes            = [];
-        $wholesaleTotal   = null;
         $hasManagerReport = false;
-        $hasUpgradeCode   = false;
+
+        // A participant starts under one code and may redeem at most one of its
+        // upgrade children - no chaining, no nesting. Coupons arrive in tracking
+        // order, so the most recently applied child simply wins.
+        $baseCoupon    = null;
+        $upgradeCoupon = null;
 
         if (!empty($assessmentCoupons) && $assessmentCoupons->isNotEmpty()) {
             foreach ($assessmentCoupons as $couponRow) {
@@ -59,12 +62,10 @@ class OrderPricingService
                     continue;
                 }
 
-                if (!empty($coupon->coupon_code)) {
-                    $codes[] = $coupon->coupon_code;
-                }
-
                 if (!empty($coupon->upgrade_code)) {
-                    $hasUpgradeCode = true;
+                    $upgradeCoupon = $coupon;
+                } elseif ($baseCoupon === null) {
+                    $baseCoupon = $coupon;
                 }
 
                 if (!$hasManagerReport && !empty($coupon->manager_report)) {
@@ -80,11 +81,6 @@ class OrderPricingService
                     ];
                 }
 
-                // merchant_share is the affiliate's wholesale total for the
-                // reports this coupon covers.
-                if ($wholesaleTotal === null && isset($coupon->merchant_share) && $coupon->merchant_share > 0) {
-                    $wholesaleTotal = (float) $coupon->merchant_share;
-                }
             }
         }
 
@@ -104,6 +100,22 @@ class OrderPricingService
         // misconfigured coupon; show no discount rather than a negative one.
         $discount = max(0, $retailTotal - $finalPrice);
 
+        // An upgrade with no base code behaves as the base.
+        if ($baseCoupon === null && $upgradeCoupon !== null) {
+            $baseCoupon    = $upgradeCoupon;
+            $upgradeCoupon = null;
+        }
+
+        // When an upgrade was redeemed the child is the operative instrument -
+        // its credits are the ones that were charged - so its wholesale wins.
+        $wholesaleTotal = null;
+        foreach ([$upgradeCoupon, $baseCoupon] as $coupon) {
+            if (!empty($coupon) && isset($coupon->merchant_share) && $coupon->merchant_share > 0) {
+                $wholesaleTotal = (float) $coupon->merchant_share;
+                break;
+            }
+        }
+
         // With no affiliate involved the platform funds any discount.
         if ($wholesaleTotal === null) {
             $wholesaleTotal = $retailTotal;
@@ -116,15 +128,63 @@ class OrderPricingService
             'list_total'        => $listTotal,
             'ft_discount'       => $ftDiscount,
             'ft_discount_label' => 'FourTemperament Discount',
+            'discounts'         => self::discountRows($baseCoupon, $upgradeCoupon, $retailTotal, $finalPrice, $discount),
             'discount'          => $discount,
-            'discount_codes'    => $codes,
-            'discount_code_label' => $hasUpgradeCode ? 'Upgrade Code' : 'Code',
             'final_price'       => $finalPrice,
             'retail_total'      => $retailTotal,
             'wholesale_total'   => $wholesaleTotal,
             'platform_funded'   => $ftDiscount + max(0, $retailTotal - $wholesaleTotal),
             'affiliate_funded'  => $wholesaleTotal - $finalPrice,
         ];
+    }
+
+    /**
+     * Build the coupon discount rows.
+     *
+     * Each row discounts from the previous step's price rather than from retail,
+     * so the rows telescope and always sum to (retail - final):
+     *
+     *   base code : retail - base price
+     *   upgrade   : base price - final price
+     *
+     * The base row is emitted even when it saves nothing, so a participant can
+     * see the code their assessment was started under.
+     *
+     * @return array<int, array{key: string, code: string, amount: float, is_upgrade: bool}>
+     */
+    protected static function discountRows($baseCoupon, $upgradeCoupon, float $retailTotal, float $finalPrice, float $discount): array
+    {
+        // With no coupon involved, any reduction is a single unattributed discount.
+        if (empty($baseCoupon)) {
+            return $discount > 0
+                ? [['key' => 'discount', 'code' => '', 'amount' => $discount, 'is_upgrade' => false]]
+                : [];
+        }
+
+        // Price the participant would have paid before redeeming an upgrade.
+        // Without an upgrade the base code accounts for the whole discount.
+        $basePrice = !empty($upgradeCoupon) ? (float) $baseCoupon->end_price : $finalPrice;
+
+        // Keep the chain monotonic so neither row can render a negative discount.
+        $basePrice = min(max($basePrice, $finalPrice), $retailTotal);
+
+        $rows = [[
+            'key'        => 'coupon',
+            'code'       => (string) $baseCoupon->coupon_code,
+            'amount'     => max(0, $retailTotal - $basePrice),
+            'is_upgrade' => false,
+        ]];
+
+        if (!empty($upgradeCoupon)) {
+            $rows[] = [
+                'key'        => 'upgrade',
+                'code'       => (string) $upgradeCoupon->coupon_code,
+                'amount'     => max(0, $basePrice - $finalPrice),
+                'is_upgrade' => true,
+            ];
+        }
+
+        return $rows;
     }
 
     /**
