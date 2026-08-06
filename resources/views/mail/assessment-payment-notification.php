@@ -168,108 +168,69 @@
                                         </tr>
                                     </thead>
                                     <?php
-                                // Determine the correct sticker price based on assessment type.
-                                // For manager coupons use the coupon's own global_price (the authoritative
-                                // list price for that coupon). For standard assessments use global_static_price.
-                                $isManagerAssessment = false;
-                                $managerCoupon       = null;
-                                if (isset($assessmentCoupons) && $assessmentCoupons->isNotEmpty()) {
-                                    foreach ($assessmentCoupons as $cr) {
-                                        if (!empty($cr->coupon->manager_report)) {
-                                            $isManagerAssessment = true;
-                                            $managerCoupon       = $cr->coupon;
-                                            break;
-                                        }
-                                    }
-                                }
-                                $assessment_price = (float) get_settings_option('mytemp_settings.assessment_price');
-                                if ($isManagerAssessment) {
-                                    $list_price = (float) $managerCoupon->global_price;
-                                } else {
-                                    $list_price = (float) get_settings_option('mytemp_settings.global_static_price');
-                                    // Fallback: if global_static_price is not configured, use what was actually paid.
-                                    if (empty($list_price)) {
-                                        $list_price = (float) $assessment->payment->end_price;
-                                    }
-                                }
+                                // Retail value of the reports purchased, a single combined discount, and
+                                // the amount paid. Mirrors the payment page - see OrderPricingService.
+                                $breakdown   = \App\Services\OrderPricingService::breakdown($assessment, $assessmentCoupons ?? null);
+                                $paymentDate = date("m-d-Y", strtotime($assessment->payment->payment_datetime));
                                 ?>
                                     <tbody>
+                                        <?php // One combined retail row covering every report purchased. ?>
                                         <tr>
                                             <td valign="top" align="left" style="padding:12px 8px;border-collapse:collapse;border-bottom:1px solid #d3d3d3">
-                                                <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">MyTemperament<sup>TM</sup> Assessment</p>
+                                                <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;"><?=htmlspecialchars($breakdown['list_label'], ENT_QUOTES, 'UTF-8')?></p>
                                             </td>
                                             <td valign="top" style="padding:12px 8px;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3" align="center">
                                                 <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">1</p>
                                             </td>
                                             <td valign="top" style="padding:12px 8px;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3" align="center">
                                                 <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
-                                                    <?=date("m-d-Y", strtotime($assessment->payment->payment_datetime))?>
+                                                    <?=$paymentDate?>
                                                 </p>
                                             </td>
                                             <td style="padding:12px 8px;text-align:right;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3">
                                                 <p style="text-align:right;margin-top: 0px;margin-bottom: 5px;font-family: Helvetica, sans-serif;font-size:14px;line-height:14px;color:#343a40">
-                                                    <?="$".number_format($list_price, 2)?>
+                                                    <?="$".number_format($breakdown['list_total'], 2)?>
                                                 </p>
                                             </td>
                                         </tr>
 
-                                        <?php
-                                        // Platform discount row: only for standard assessments where the
-                                        // sale price (assessment_price) is lower than the sticker price.
-                                        if (!$isManagerAssessment && $list_price > $assessment_price) {
-                                            $platform_discount = $list_price - $assessment_price;
-                                        ?>
+                                        <?php if ($breakdown['ft_discount'] > 0) { ?>
                                             <tr>
                                                 <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
-                                                    <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">DISCOUNT</p>
-                                                </td>
-                                                <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
-                                                    <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
-                                                        <strong style="color:#000; font-weight:bold;">
-                                                            <?="-$".number_format($platform_discount, 2)?>
-                                                        </strong>
+                                                    <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">
+                                                        <?=htmlspecialchars($breakdown['ft_discount_label'], ENT_QUOTES, 'UTF-8')?>
                                                     </p>
                                                 </td>
-                                            </tr>
-                                            <tr>
-                                                <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
-                                                    <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">Sub Total</p>
-                                                </td>
                                                 <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
                                                     <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
                                                         <strong style="color:#000; font-weight:bold;">
-                                                            <?="$".number_format($assessment_price, 2)?>
+                                                            <?="-$".number_format($breakdown['ft_discount'], 2)?>
                                                         </strong>
                                                     </p>
                                                 </td>
                                             </tr>
                                         <?php } ?>
 
-                                        <?php
-                                        if (isset($assessmentCoupons) && $assessmentCoupons->isNotEmpty()) {
-                                            foreach ($assessmentCoupons as $couponRow) {
-                                                $couponDiscount = (float) $couponRow->coupon->global_price - (float) $couponRow->coupon->end_price;
-                                                $isUpgrade = !empty($couponRow->coupon->upgrade_code);
-                                                $label = $isUpgrade ? 'Upgrade Code' : 'Code';
-                                                ?>
-                                                <tr>
-                                                    <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
-                                                        <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">
-                                                            <?=$label?> (<strong style="color:#64bf79; font-weight: bold;"><?=$couponRow->coupon->coupon_code?></strong>) Applied:
-                                                        </p>
-                                                    </td>
-                                                    <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
-                                                        <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
-                                                            <strong style="color:#000; font-weight:bold;">
-                                                                <?="-$".number_format($couponDiscount, 2)?>
-                                                            </strong>
-                                                        </p>
-                                                    </td>
-                                                </tr>
-                                                <?php
-                                            }
-                                        }
-                                        ?>
+                                        <?php if ($breakdown['discount'] > 0) { ?>
+                                            <tr>
+                                                <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
+                                                    <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">
+                                                        <?php if (!empty($breakdown['discount_codes'])) { ?>
+                                                            <?=$breakdown['discount_code_label']?> (<strong style="color:#64bf79; font-weight: bold;"><?=htmlspecialchars(implode(', ', $breakdown['discount_codes']), ENT_QUOTES, 'UTF-8')?></strong>) Applied:
+                                                        <?php } else { ?>
+                                                            Discount
+                                                        <?php } ?>
+                                                    </p>
+                                                </td>
+                                                <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
+                                                    <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
+                                                        <strong style="color:#000; font-weight:bold;">
+                                                            <?="-$".number_format($breakdown['discount'], 2)?>
+                                                        </strong>
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        <?php } ?>
                                         <tr>
                                             <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
                                                 <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000; font-weight:bold;">
