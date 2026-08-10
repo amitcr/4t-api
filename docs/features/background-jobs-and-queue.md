@@ -16,7 +16,7 @@ The queue subsystem — a DB-backed job queue in the shared **`{prefix}jobs`** t
 
 ## The queue table
 
-Backed by **`{prefix}jobs`** (`wp_xzg4ax8u64_jobs`) — the WP prefix but **no `mytemp_`/`affcp_` sub-prefix**. `JobModel`'s `$table='jobs'`; Eloquent prepends `DB_PREFIX`. Columns: `id`, `job_class`, `payload` (JSON), `attempts`, `status ENUM('pending','processing','completed','failed','held')`, `available_at`, `reserved_at`, `completed_at`, `failed_at`.
+Backed by **`{prefix}jobs`** — the WP prefix but **no `mytemp_`/`affcp_` sub-prefix**. `JobModel`'s `$table='jobs'`; Eloquent prepends `DB_PREFIX`. Columns: `id`, `job_class`, `payload` (JSON), `attempts`, `status ENUM('pending','processing','completed','failed','held')`, `available_at`, `reserved_at`, `completed_at`, `failed_at`.
 
 Both WordPress plugins and this service write rows here; only this service's worker consumes them.
 

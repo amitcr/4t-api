@@ -2,7 +2,7 @@
 
 > **Audience:** developers working on this service's codebase. For platform-wide business workflows and operations, see the separate **`product-manual`** repository.
 
-The backend service for the Four Temperaments platform. It exposes an HTTP JSON API, runs the scheduled jobs/crons, generates PDF reports, and brokers communication with the external Scoring Engine. It is **one of three coordinated repos** (with the two WordPress plugins) and **shares the WordPress MySQL database** (prefix `wp_xzg4ax8u64_`).
+The backend service for the Four Temperaments platform. It exposes an HTTP JSON API, runs the scheduled jobs/crons, generates PDF reports, and brokers communication with the external Scoring Engine. It is **one of three coordinated repos** (with the two WordPress plugins) and **shares the WordPress MySQL database** (the site's WordPress table prefix, written `{prefix}` throughout these docs — the real value lives in `wp-config.php` / `DB_PREFIX` in `.env`).
 
 | | |
 |---|---|

@@ -31,7 +31,7 @@ Rules you must follow when editing the API. Most exist because this is a **custo
 
 ## The `{prefix}jobs` table
 
-The queue table is **`{prefix}jobs`** (`wp_xzg4ax8u64_jobs`) — it carries the WP prefix but **no `mytemp_`/`affcp_` sub-prefix**. Models declare `$table='jobs'` and Eloquent prepends `DB_PREFIX`. **Don't hardcode the prefix or add a sub-prefix.** The `// NO prefix here!` comments mean "don't hardcode it."
+The queue table is **`{prefix}jobs`** — it carries the WP prefix but **no `mytemp_`/`affcp_` sub-prefix**. Models declare `$table='jobs'` and Eloquent prepends `DB_PREFIX`. **Don't hardcode the prefix or add a sub-prefix.** The `// NO prefix here!` comments mean "don't hardcode it."
 
 ---
 

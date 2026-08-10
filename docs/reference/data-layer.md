@@ -24,9 +24,9 @@ How the API reads and writes the **shared WordPress database**. This service **o
 
 ## Prefix mechanics (important)
 
-Models declare `$table` **without** the WordPress prefix; Eloquent's connection `prefix` (`DB_PREFIX=wp_xzg4ax8u64_`) prepends it at query time:
-- `AssessmentModel`'s `$table = 'mytemp_assessments'` → `wp_xzg4ax8u64_mytemp_assessments`.
-- `JobModel`'s `$table = 'jobs'` → `wp_xzg4ax8u64_jobs`.
+Models declare `$table` **without** the WordPress prefix; Eloquent's connection `prefix` (`DB_PREFIX` from `.env`, written `{prefix}` here) prepends it at query time:
+- `AssessmentModel`'s `$table = 'mytemp_assessments'` → `{prefix}mytemp_assessments`.
+- `JobModel`'s `$table = 'jobs'` → `{prefix}jobs`.
 - Plugin 2 tables carry their own sub-prefix in `$table` (`affcp_wp_*` / `affcp_*`).
 
 The `// NO prefix here!` comments mean **"don't hardcode the prefix,"** not that the table is unprefixed.
@@ -35,7 +35,7 @@ The `// NO prefix here!` comments mean **"don't hardcode the prefix,"** not that
 
 ## The queue table
 
-`{prefix}jobs` (`wp_xzg4ax8u64_jobs`) — the WP prefix but **no `mytemp_`/`affcp_` sub-prefix**. `JobModel`'s `$table='jobs'`. Columns: `id`, `job_class`, `payload`, `attempts`, `status`, `available_at`, `reserved_at`, `completed_at`, `failed_at`. See [../features/background-jobs-and-queue.md](../features/background-jobs-and-queue.md).
+`{prefix}jobs` — the WP prefix but **no `mytemp_`/`affcp_` sub-prefix**. `JobModel`'s `$table='jobs'`. Columns: `id`, `job_class`, `payload`, `attempts`, `status`, `available_at`, `reserved_at`, `completed_at`, `failed_at`. See [../features/background-jobs-and-queue.md](../features/background-jobs-and-queue.md).
 
 ---
 
@@ -57,7 +57,7 @@ Relationships are hand-written on the models (e.g. `AssessmentModel::with('user'
 
 ## WordPress settings are read-only
 
-`OptionsModel` reads `wp_xzg4ax8u64_options`. Runtime settings — scoring/GraphQL **endpoints**, `staging_mode`, page IDs — live in the **`mytemp_settings`** option, **owned and written by the Plugin 1 admin UI**. The API **reads** them (e.g. `BaseGraphQLService` resolves its endpoint from here) and **must never write them**.
+`OptionsModel` reads `{prefix}options`. Runtime settings — scoring/GraphQL **endpoints**, `staging_mode`, page IDs — live in the **`mytemp_settings`** option, **owned and written by the Plugin 1 admin UI**. The API **reads** them (e.g. `BaseGraphQLService` resolves its endpoint from here) and **must never write them**.
 
 ---
 

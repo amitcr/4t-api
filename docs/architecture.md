@@ -41,7 +41,7 @@ api/
 │   │                       #   CronKernel, Schedule, ScheduleTask, CronExpression, Controller,
 │   │                       #   Mail/, JobInterface, CommandInterface, ChartImagesMissingException
 │   ├── Controllers/        # HTTP controllers (+ ScoringEngine/ subgroup = proxy controllers)
-│   ├── Models/             # Eloquent models (map to wp_xzg4ax8u64_* tables)
+│   ├── Models/             # Eloquent models (map to {prefix}* WordPress tables)
 │   ├── Middleware/         # Cors, Jwt, RateLimit (+ MiddlewareInterface)
 │   ├── Services/           # business logic + outbound integrations
 │   ├── Jobs/               # queue job classes (GenerateReportJob, GenerateManagerReportJob, SendEmailJob)
@@ -95,9 +95,9 @@ See [features/scheduled-commands.md](features/scheduled-commands.md) and [featur
 
 ## Data layer
 
-- Eloquent models in `app/Models/` extend `BaseModel`. Table names map to `wp_xzg4ax8u64_*`; the prefix is applied via the connection (`DB_PREFIX`), so a model's `$table` may look unprefixed.
-- **The queue table is `{prefix}jobs`** (`wp_xzg4ax8u64_jobs`): `JobModel`'s `$table='jobs'` + the connection prefix — it just lacks the `mytemp_`/`affcp_` sub-prefix. The `// NO prefix here!` comments mean "don't hardcode the prefix," **not** that the table is unprefixed.
-- `OptionsModel` reads WordPress `wp_xzg4ax8u64_options`; runtime settings (scoring/GraphQL endpoints, `staging_mode`) live in the `mytemp_settings` option, **written by the WP plugin admin UI — the API only reads them.**
+- Eloquent models in `app/Models/` extend `BaseModel`. Table names map to `{prefix}*`; the prefix is applied via the connection (`DB_PREFIX`), so a model's `$table` may look unprefixed.
+- **The queue table is `{prefix}jobs`**: `JobModel`'s `$table='jobs'` + the connection prefix — it just lacks the `mytemp_`/`affcp_` sub-prefix. The `// NO prefix here!` comments mean "don't hardcode the prefix," **not** that the table is unprefixed.
+- `OptionsModel` reads WordPress `{prefix}options`; runtime settings (scoring/GraphQL endpoints, `staging_mode`) live in the `mytemp_settings` option, **written by the WP plugin admin UI — the API only reads them.**
 
 Full detail: [reference/data-layer.md](reference/data-layer.md).
 

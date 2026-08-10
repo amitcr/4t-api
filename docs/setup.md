@@ -21,7 +21,7 @@ A **standard PHP + MySQL host** (production is cPanel/EasyApache, Apache + MySQL
 | Requirement | Supported |
 |---|---|
 | **PHP** | **8.2 minimum** (production baseline); must also run on **8.3, 8.4, 8.5**. No dynamic (undeclared) object properties. |
-| **Database** | **MySQL 5.7+** or **MariaDB 10.3+** — the **same** DB the WordPress plugins use (prefix `wp_xzg4ax8u64_`). |
+| **Database** | **MySQL 5.7+** or **MariaDB 10.3+** — the **same** DB the WordPress plugins use, with the same WordPress table prefix (`{prefix}` in these docs). |
 | **Web server** | **Apache** (production; ships `public/.htaccess` rewriting `/api/*` → `public/index.php`). **Nginx** / **LiteSpeed** need the equivalent rewrite. |
 | **Operating system** | Any mainstream **Linux** (Ubuntu, Debian, AlmaLinux, Rocky, CentOS); Windows/macOS for dev. |
 | **Composer** | Required. |
@@ -45,7 +45,7 @@ composer install
 ## The `.env` file
 
 Loaded via `phpdotenv` (with a simple fallback loader in `bootstrap.php`). Holds:
-- **DB creds** (`DB_*`, incl. `DB_PREFIX=wp_xzg4ax8u64_`).
+- **DB creds** (`DB_*`, incl. `DB_PREFIX` — must match the WordPress `$table_prefix` in `wp-config.php`).
 - **`JWT_SECRET`** (a default fallback exists if unset — production must set a real one).
 - **`APP_ENV`**, **`APP_EMAIL`**, mail driver.
 - **Scoring / GraphQL keys** (`GRAPHQL_PROD_APP_ID/_API_KEY`, `GRAPHQL_STAGING_APP_ID/_API_KEY`).
