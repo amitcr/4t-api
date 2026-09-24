@@ -216,20 +216,80 @@ if(!function_exists('get_logo_url')){
 }
 
 if(!function_exists('get_assessment_chart_image')){
-    function get_assessment_chart_image(int $assessment_id, string $imageType = '', string $returnType = ''){
+    function get_assessment_chart_image(int $assessment_id, string $imageType = '', string $returnType = '', $override = false, $version = null){
         if(empty($assessment_id) || $assessment_id == 0)
             return false;
 
-        $imageName = !empty($imageType) ? $imageType.'_chart_'.$assessment_id.'.png': 'chart_'.$assessment_id.'.png';
-        if(file_exists( PROJECT_ROOT.'/assessments/images/'.$imageName )){
-            if(empty($returnType) || $returnType == "url"){
-                return get_settings_option('home') .'assessments/images/'.$imageName;
-            }else{
-                return PROJECT_ROOT.'/assessments/images/'.$imageName;
+        $prefix = !empty($imageType) ? $imageType.'_chart_' : 'chart_';
+
+        if($override == true){
+            // Each validation has its own versioned chart (e.g. chart_123_v2.png), where the
+            // suffix is the review's per-assessment `version`. Explicit $version wins; otherwise
+            // use the latest validated review's version.
+            if(empty($version)){
+                $review = \App\Models\AssessmentReviewModel::where('assessment_id', $assessment_id)
+                    ->where('status', 'validated')
+                    ->orderBy('id', 'desc')
+                    ->first();
+                $version = $review ? (int) $review->version : 0;
             }
+            $suffix = !empty($version) ? '_v'.$version : '';
+
+            $dir = PROJECT_ROOT.'/assessments/override/images/';
+            $url = get_settings_option('home').'assessments/override/images/';
+
+            $versionedName = $prefix.$assessment_id.$suffix.'.png';
+            $legacyName    = $prefix.$assessment_id.'.png';
+
+            if(file_exists($dir.$versionedName)){
+                $imageName = $versionedName;
+            }elseif(file_exists($dir.$legacyName)){
+                // Fall back to the pre-versioning override chart.
+                $imageName = $legacyName;
+            }else{
+                return false;
+            }
+
+            return (empty($returnType) || $returnType == "url") ? $url.$imageName : $dir.$imageName;
+        }
+
+        // Original (non-override) report chart — unversioned.
+        $imageName = $prefix.$assessment_id.'.png';
+        $filePath  = PROJECT_ROOT.'/assessments/images/'.$imageName;
+        if(file_exists($filePath)){
+            return (empty($returnType) || $returnType == "url") ? get_settings_option('home').'assessments/images/'.$imageName : $filePath;
         }
 
         return false;
+    }
+}
+
+if (!function_exists('mytemp_temperament_parts')) {
+    /**
+     * Resolve a temperament's parts from a DISC letter (D/I/S/C) or a temperament name.
+     *
+     * Shared by the report templates so the letter/label/name mapping lives in one place.
+     *
+     * @param  string $temperament  'D'|'I'|'S'|'C' or 'Choleric'|'Sanguine'|'Phlegmatic'|'Melancholy'.
+     * @return array{letter:string,label:string,name:string}
+     */
+    function mytemp_temperament_parts($temperament = '') {
+        $map = [
+            'D' => ['letter' => 'D', 'label' => 'Chol',  'name' => 'Choleric'],
+            'I' => ['letter' => 'I', 'label' => 'San',   'name' => 'Sanguine'],
+            'S' => ['letter' => 'S', 'label' => 'Phleg', 'name' => 'Phlegmatic'],
+            'C' => ['letter' => 'C', 'label' => 'Mel',   'name' => 'Melancholy'],
+        ];
+
+        // Allow a full temperament name as input too.
+        $names = ['CHOLERIC' => 'D', 'SANGUINE' => 'I', 'PHLEGMATIC' => 'S', 'MELANCHOLY' => 'C'];
+
+        $key = strtoupper(trim((string) $temperament));
+        if (isset($names[$key])) {
+            $key = $names[$key];
+        }
+
+        return isset($map[$key]) ? $map[$key] : ['letter' => '', 'label' => '', 'name' => ''];
     }
 }
 

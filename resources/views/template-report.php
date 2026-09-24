@@ -1,16 +1,25 @@
 <?php 
+$_disc_to_temperament = ['D' => 'Choleric', 'I' => 'Sanguine', 'S' => 'Phlegmatic', 'C' => 'Melancholy'];
 if((isset($override) && $override == true)){
-	$assessmentResults->overrides = $assessmentResults->overrides[0];
-	$first_content = ucwords(strtolower($assessmentResults->overrides->details->rankedTemperaments[0]) );
-	$sec_content = ucwords(strtolower($assessmentResults->overrides->details->rankedTemperaments[1]));
-	$trd_content = ucwords(strtolower($assessmentResults->overrides->details->rankedTemperaments[2]));
+    // Pick the override matching this review's coach_override_id; fall back to the first.
+    $assessmentResults->coachOverride = $assessmentResults->coachOverrides[0];
+    if (!empty($coach_override_id)) {
+        foreach ($assessmentResults->coachOverrides as $_co) {
+            if (isset($_co->id) && (string) $_co->id === (string) $coach_override_id) {
+                $assessmentResults->coachOverride = $_co;
+                break;
+            }
+        }
+    }
+    $_ranked     = $assessmentResults->coachOverride->rankedTemperaments ?? [];
 }else{
-	$first_content = ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[0]) );
-	$sec_content = ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[1]));
-	$trd_content = ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[2]));
+	$_ranked     = $assessmentResults->preferenceRankedTemperaments ?? [];
 }
+$first_content = $_disc_to_temperament[ strtoupper( $_ranked[0] ?? '' ) ] ?? '';
+$sec_content   = $_disc_to_temperament[ strtoupper( $_ranked[1] ?? '' ) ] ?? '';
+$trd_content   = $_disc_to_temperament[ strtoupper( $_ranked[2] ?? '' ) ] ?? '';
 
-$report_pattern = (isset($override) && $override == true) ? ucwords(strtolower($assessmentResults->overrides->details->patternTitle)):  ucwords(strtolower($assessmentResults->details->preferencePatternTitle));
+$report_pattern = (isset($override) && $override == true) ? ucwords(strtolower($assessmentResults->coachOverride->patternTitle)) : ucwords(strtolower( $assessmentResults->preferencePatternTitle ?? '' ));
 
 /*
 // D-I = Executive
@@ -82,56 +91,18 @@ $report_pattern = "Analyst";
 /*
 */
 
+$Top_one = $Top_two = $Top_trd = '';
+$Top_one_label = $Top_two_label = $Top_trd_label = '';
 $first_temperament = $second_temperament = '';
-if($first_content=="Choleric"){
-	$Top_one = "D";
-	$Top_one_label = "Chol";
-    $first_temperament = "Choleric";
-}else if($first_content=="Sanguine"){
-	$Top_one = "I";
-    $Top_one_label = "San";
-    $first_temperament = "Sanguine";
-}else if($first_content=="Phlegmatic"){
-	$Top_one = "S";
-    $Top_one_label = "Phleg";
-    $first_temperament = "Phlegmatic";
-}else if($first_content=="Melancholy"){
-	$Top_one = "C";
-    $Top_one_label = "Mel";
-    $first_temperament = "Melancholy";
-}
 
-if($sec_content=="Choleric"){
-	$Top_two = "D";
-    $Top_two_label = "Chol";
-    $second_temperament = "Choleric";
-}else if($sec_content=="Sanguine"){
-	$Top_two = "I";
-    $Top_two_label = "San";
-    $second_temperament = "Sanguine";
-}else if($sec_content=="Phlegmatic"){
-	$Top_two = "S";
-    $Top_two_label = "Phleg";
-    $second_temperament = "Phlegmatic";
-}else if($sec_content=="Melancholy"){
-	$Top_two = "C";
-    $Top_two_label = "Mel";
-    $second_temperament = "Melancholy";
-}
+// Ranked temperaments are already D/I/S/C — resolve their parts via the shared helper.
+$_p1 = mytemp_temperament_parts($_ranked[0] ?? '');
+$_p2 = mytemp_temperament_parts($_ranked[1] ?? '');
+$_p3 = mytemp_temperament_parts($_ranked[2] ?? '');
 
-if($trd_content=="Choleric"){
-	$Top_trd = "D";
-    $Top_trd_label = "Chol";
-}else if($trd_content=="Sanguine"){
-	$Top_trd = "I";
-    $Top_trd_label = "San";
-}else if($trd_content=="Phlegmatic"){
-	$Top_trd = "S";
-    $Top_trd_label = "Phleg";
-}else if($trd_content=="Melancholy"){
-	$Top_trd = "C";
-    $Top_trd_label = "Mel";
-}
+$Top_one = $_p1['letter']; $Top_one_label = $_p1['label']; $first_temperament  = $_p1['name'];
+$Top_two = $_p2['letter']; $Top_two_label = $_p2['label']; $second_temperament = $_p2['name'];
+$Top_trd = $_p3['letter']; $Top_trd_label = $_p3['label'];
 
 
 $block_class = $Top_one ."_".$Top_two."_block";
@@ -1688,7 +1659,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 20px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -1790,7 +1761,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 20px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -1889,7 +1860,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 20px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -1988,7 +1959,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 20px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -2090,7 +2061,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 20px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -2196,7 +2167,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 10px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -2302,7 +2273,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 10px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -2402,7 +2373,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 10px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -2502,7 +2473,7 @@ $the_report_pattern = "The ".$report_pattern;
                     <p style="color: #231f20; font-size: 12pt; margin: 0px; line-height: 22px;">This determined and persistent person brings a deceptively intense approach to the task. Because the <?=$report_pattern?>’s demeanor is low-key, their emotional involvement in a task is not easily observed.</p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 10px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -2607,7 +2578,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 10px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -2709,7 +2680,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 10px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -2811,7 +2782,7 @@ $the_report_pattern = "The ".$report_pattern;
                     </p>
                 </td>
                 <td align="center" style="width: 200px; display: inline-block; padding: 0px; margin: 0px; padding-left: 30px; padding-top: 10px;">
-                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath')?>" />
+                    <img style="width: 180px; text-align: center;" src="<?=get_assessment_chart_image($assessment->assessment_id, 'single', 'dirpath', $override)?>" />
                     <table style="width: 100%; margin: 0px; padding:0px; display: inline-block; padding-left:55px;" align="left">
                         <tr>
                             <td align="center" style="width:50px;">
@@ -22934,7 +22905,7 @@ $the_report_pattern = "The ".$report_pattern;
 
         <tr>
             <td style="width: 85%; display: inline-block;">
-                <img style="width: 650px; text-align:center;margin-bottom:20px;" src="<?=get_assessment_chart_image($assessment->assessment_id, '', 'dirpath')?>">
+                <img style="width: 650px; text-align:center;margin-bottom:20px;" src="<?=get_assessment_chart_image($assessment->assessment_id, '', 'dirpath', $override)?>">
             </td>
         </tr>
 

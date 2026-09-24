@@ -180,7 +180,7 @@ class AssessmentController
         return ['deleted' => (bool) $assessment];
     }
 
-    // validate asessment status
+    // validate assessment status
     public function validate(Request $request) {
 
         $assessment = AssessmentModel::where('user_id', $request->tokendata['user_id'])->where('assessment_status', '!=', 'finished')->first();

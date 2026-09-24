@@ -49,13 +49,26 @@ class SelfAssessmentResponseController
         }
     }
 
-    // POST /v1/participants (Create on the third-party API)
+    // POST /v1/self-assessment-responses
     public function store($request)
     {
         $data = $request->all();
+
+        // Idempotent upsert keyed by (participantSessionId, questionPath): one round-trip
+        // creates or updates the response, so no duplicate-check snapshot is needed.
         try {
-            $created = $this->svc->create($data);
-            return Response::json($created, 201);
+            $saved = $this->svc->save($data);
+
+            if ($saved === null) {
+                $message = $this->svc->getLastError() ?? 'Your response could not be saved. Please try again.';
+                return Response::json(['message' => $message], 422);
+            }
+
+            // Normalize to a transport-neutral shape — never leak the GraphQL structure
+            // to the browser. The client only needs the response id to reuse on re-saves.
+            $responseId = $saved->saveSelfAssessmentResponse->response->id ?? null;
+
+            return Response::json(['responseId' => $responseId], 200);
         } catch (RequestException $e) {
             $status = ($e->response) ? $e->response->getStatusCode() : 500;
             $body   = ($e->response) ? $e->response->json() : null;
@@ -63,12 +76,19 @@ class SelfAssessmentResponseController
         }
     }
 
-    // PUT /v1/participants/{id}
+    // PUT /v1/self-assessment-responses/{id}
     public function update($request, $id)
     {
         $data = $request->all();
         try {
-            return $this->svc->updateById($id, $data);
+            $updated = $this->svc->updateById($id, $data);
+
+            if ($updated === null) {
+                $message = $this->svc->getLastError() ?? 'Your response could not be updated. Please try again.';
+                return Response::json(['message' => $message], 422);
+            }
+
+            return Response::json($updated);
         } catch (RequestException $e) {
             $status = ($e->response) ? $e->response->getStatusCode() : 500;
             $body   = ($e->response) ? $e->response->json() : null;

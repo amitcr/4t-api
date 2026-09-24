@@ -167,80 +167,75 @@
                                             </th>
                                         </tr>
                                     </thead>
-                                    <?php $global_static_price = get_settings_option('mytemp_settings.global_static_price'); ?>
+                                    <?php
+                                // Retail value of the reports purchased, a single combined discount, and
+                                // the amount paid. Mirrors the payment page - see OrderPricingService.
+                                $breakdown   = \App\Services\OrderPricingService::breakdown($assessment, $assessmentCoupons ?? null);
+                                $paymentDate = date("m-d-Y", strtotime($assessment->payment->payment_datetime));
+                                ?>
                                     <tbody>
+                                        <?php // One combined retail row covering every report purchased. ?>
                                         <tr>
                                             <td valign="top" align="left" style="padding:12px 8px;border-collapse:collapse;border-bottom:1px solid #d3d3d3">
-                                                <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">MyTemperament<sup>TM</sup> Assessment</p>
+                                                <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;"><?=htmlspecialchars($breakdown['list_label'], ENT_QUOTES, 'UTF-8')?></p>
                                             </td>
                                             <td valign="top" style="padding:12px 8px;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3" align="center">
                                                 <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">1</p>
                                             </td>
                                             <td valign="top" style="padding:12px 8px;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3" align="center">
-                                                <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;"> 
-                                                    <?=date("m-d-Y", strtotime($assessment->payment->payment_datetime))?>
+                                                <p style="text-align:center;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
+                                                    <?=$paymentDate?>
                                                 </p>
                                             </td>
                                             <td style="padding:12px 8px;text-align:right;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3">
-                                                <p style="text-align:right;margin-top: 0px;margin-bottom: 5px;font-family:'Open Sans', sans-serif;font-size:14px;line-height:14px;color:#343a40">
-                                                    <?="$".number_format( $global_static_price, 2 )?>
+                                                <p style="text-align:right;margin-top: 0px;margin-bottom: 5px;font-family: Helvetica, sans-serif;font-size:14px;line-height:14px;color:#343a40">
+                                                    <?="$".number_format($breakdown['list_total'], 2)?>
                                                 </p>
                                             </td>
                                         </tr>
 
-                                        <?php 
-                                        $assessment_price = get_settings_option('mytemp_settings.assessment_price');
-                                        if(!empty($global_static_price) && $global_static_price > $assessment_price){
-                                            $global_static_discount = $global_static_price - $assessment_price;
-                                        ?>
+                                        <?php if ($breakdown['ft_discount'] > 0) { ?>
                                             <tr>
                                                 <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
-                                                    <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">DISCOUNT</p>
-                                                </td>
-                                                <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
-                                                    <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
-                                                        <strong style="color:#000; font-weight:bold;">
-                                                            <?="-$".number_format( $global_static_discount, 2)?>
-                                                        </strong>
+                                                    <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">
+                                                        <?=htmlspecialchars($breakdown['ft_discount_label'], ENT_QUOTES, 'UTF-8')?>
                                                     </p>
                                                 </td>
-                                            </tr>
-                                            <tr>
-                                                <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
-                                                    <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">Sub Total</p>
-                                                </td>
                                                 <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
                                                     <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
                                                         <strong style="color:#000; font-weight:bold;">
-                                                            <?="$".number_format( $assessment_price,2)?>
+                                                            <?="-$".number_format($breakdown['ft_discount'], 2)?>
                                                         </strong>
                                                     </p>
                                                 </td>
                                             </tr>
                                         <?php } ?>
-                                        
-                                        <?php 
-                                        if(isset($assessmentCoupons) && $assessmentCoupons->isNotEmpty()){
-                                            foreach($assessmentCoupons as $index=>$couponRow){
-                                                ?>
-                                                <tr>
-                                                    <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
-                                                        <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">
-                                                            Code (<strong style="color:#64bf79; font-wight: bold;"><?=$couponRow->coupon->coupon_code?></strong>) Applied:
-                                                        </p>
-                                                    </td>
-                                                    <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
-                                                        <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
-                                                            <strong style="color:#000; font-weight:bold;">
-                                                                <?="-$".number_format( ($couponRow->coupon->global_price - $couponRow->coupon->end_price), 2)?>
-                                                            </strong>
-                                                        </p>
-                                                    </td>
-                                                </tr>
-                                                <?php 
-                                            }
-                                        }
-                                        ?>
+
+                                        <?php
+                                        // One row per applied code, including any redeemed upgrade. Zero-value
+                                        // rows are shown so the participant sees the code they started under.
+                                        // The ?? keeps the receipt intact if a long-running queue worker still
+                                        // holds an older OrderPricingService.
+                                        foreach (($breakdown['discounts'] ?? []) as $discountRow) { ?>
+                                            <tr>
+                                                <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
+                                                    <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000">
+                                                        <?php if (!empty($discountRow['code'])) { ?>
+                                                            <?=!empty($discountRow['is_upgrade']) ? 'Upgrade Code' : 'Code'?> (<strong style="color:#64bf79; font-weight: bold;"><?=htmlspecialchars($discountRow['code'], ENT_QUOTES, 'UTF-8')?></strong>) Applied:
+                                                        <?php } else { ?>
+                                                            Discount
+                                                        <?php } ?>
+                                                    </p>
+                                                </td>
+                                                <td colspan="2" align="right" bgcolor="#ffffff" style="padding:12px 8px;border-collapse:collapse;text-align:right;vertical-align:top">
+                                                    <p style="text-align:right;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;">
+                                                        <strong style="color:#000; font-weight:bold;">
+                                                            <?="-$".number_format((float) $discountRow['amount'], 2)?>
+                                                        </strong>
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        <?php } ?>
                                         <tr>
                                             <td colspan="2" bgcolor="#ffffff" align="left" style="padding:12px 8px;border-collapse:collapse;text-align:left;vertical-align:top">
                                                 <p style="text-align:left;Margin-top:0px;Margin-bottom:0px;font-family: Helvetica, sans-serif; vertical-align: top;color:#000; font-weight:bold;">

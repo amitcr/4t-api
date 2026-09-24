@@ -4,18 +4,28 @@
  * 
  * @since 1.0.2
  */
+$_disc_to_temperament = ['D' => 'Choleric', 'I' => 'Sanguine', 'S' => 'Phlegmatic', 'C' => 'Melancholy'];
 if((isset($override) && $override == true)){
-	$assessmentResults->overrides = $assessmentResults->overrides[0];
-	$first_content = ucwords(strtolower($assessmentResults->overrides->details->rankedTemperaments[0]) );
-	$sec_content = ucwords(strtolower($assessmentResults->overrides->details->rankedTemperaments[1]));
-	$trd_content = ucwords(strtolower($assessmentResults->overrides->details->rankedTemperaments[2]));
+	// Pick the override matching this review's coach_override_id; fall back to the first.
+	$assessmentResults->coachOverride = $assessmentResults->coachOverrides[0];
+	if (!empty($coach_override_id)) {
+		foreach ($assessmentResults->coachOverrides as $_co) {
+			if (isset($_co->id) && (string) $_co->id === (string) $coach_override_id) {
+				$assessmentResults->coachOverride = $_co;
+				break;
+			}
+		}
+	}
+	$_ranked = $assessmentResults->coachOverride->rankedTemperaments ?? [];
 }else{
-	$first_content = ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[0]) );
-	$sec_content = ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[1]));
-	$trd_content = ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[2]));
+	$_ranked = $assessmentResults->preferenceRankedTemperaments ?? [];
 }
 
-$report_pattern = (isset($override) && $override == true) ? ucwords(strtolower($assessmentResults->overrides->details->patternTitle)):  ucwords(strtolower($assessmentResults->details->preferencePatternTitle));
+$first_content = $_disc_to_temperament[ strtoupper( $_ranked[0] ?? '' ) ] ?? '';
+$sec_content   = $_disc_to_temperament[ strtoupper( $_ranked[1] ?? '' ) ] ?? '';
+$trd_content   = $_disc_to_temperament[ strtoupper( $_ranked[2] ?? '' ) ] ?? '';
+
+$report_pattern = (isset($override) && $override == true) ? ucwords(strtolower($assessmentResults->coachOverride->patternTitle)) : ucwords(strtolower($assessmentResults->preferencePatternTitle ?? ''));
 
 /*
 // D-I = Executive
@@ -88,35 +98,10 @@ $report_pattern = "Analyst";
 
 $the_report_pattern = "The ".$report_pattern;
 
-if($first_content=="Choleric"){
-	$Top_one = "D";
-}else if($first_content=="Sanguine"){
-	$Top_one = "I";
-}else if($first_content=="Phlegmatic"){
-	$Top_one = "S";
-}else if($first_content=="Melancholy"){
-	$Top_one = "C";
-}
-
-if($sec_content=="Choleric"){
-	$Top_two = "D";
-}else if($sec_content=="Sanguine"){
-	$Top_two = "I";
-}else if($sec_content=="Phlegmatic"){
-	$Top_two = "S";
-}else if($sec_content=="Melancholy"){
-	$Top_two = "C";
-}
-
-if($trd_content=="Choleric"){
-	$Top_trd = "D";
-}else if($trd_content=="Sanguine"){
-	$Top_trd = "I";
-}else if($trd_content=="Phlegmatic"){
-	$Top_trd = "S";
-}else if($trd_content=="Melancholy"){
-	$Top_trd = "C";
-}
+// Ranked temperaments are already D/I/S/C — resolve their parts via the shared helper.
+$Top_one = mytemp_temperament_parts($_ranked[0] ?? '')['letter'];
+$Top_two = mytemp_temperament_parts($_ranked[1] ?? '')['letter'];
+$Top_trd = mytemp_temperament_parts($_ranked[2] ?? '')['letter'];
 
 ?>
 

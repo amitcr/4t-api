@@ -187,7 +187,12 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach($assessments as $assessment){ ?>
+                                        <?php foreach($assessments as $item){
+                                            // Items may be a bare assessment (legacy) or a context array with version info.
+                                            $assessment      = is_array($item) ? $item['assessment'] : $item;
+                                            $missingOverride = is_array($item) ? ! empty($item['override']) : false;
+                                            $missingReviewId = is_array($item) ? ($item['review_id'] ?? null) : null;
+                                        ?>
                                         <tr>
                                             <td valign="top" align="left"
                                                 style="padding:12px 8px;border-collapse:collapse;border-bottom:1px solid #d3d3d3">
@@ -211,13 +216,34 @@
                                             </td>
                                             <td style="padding:12px 8px;text-align:right;border-collapse:collapse;border-left:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3">
                                                 <p style="text-align:right;margin-top: 0px;margin-bottom: 5px;font-family:'Open Sans', sans-serif;font-size:14px;line-height:14px;color:#343a40">
-                                                    <?php 
+                                                    <?php
                                                         $missing_chart = '';
-                                                        if(get_assessment_chart_image($assessment->assessment_id) === false) {
-                                                            $missing_chart .= "<a href='".get_settings_option('home')."/chart-preview/?chart_type=full&assessment_id=".$assessment->assessment_id."&store=1'>Three Charts Image</a><br/><br/>";
-                                                        } 
-                                                        if(get_assessment_chart_image($assessment->assessment_id, 'single') === false){
-                                                            $missing_chart .= "<a href='".get_settings_option('home')."/chart-preview/?chart_type=single&assessment_id=".$assessment->assessment_id."&store=1'>Single Chart Image</a><br/><br/>";
+
+                                                        // review_id is the PK; resolve its per-assessment version for naming + label.
+                                                        $missingReviewVersion = 0;
+                                                        if (!empty($missingReviewId)) {
+                                                            $_review = \App\Models\AssessmentReviewModel::find($missingReviewId);
+                                                            $missingReviewVersion = ($_review && !empty($_review->version)) ? (int) $_review->version : 0;
+                                                        }
+
+                                                        // Build the version-aware query string for the chart-preview generator.
+                                                        $_versionParams = '';
+                                                        $_versionLabel  = '';
+                                                        if ($missingOverride) {
+                                                            $_versionParams = '&override=1';
+                                                            if (!empty($missingReviewId)) {
+                                                                $_versionParams .= '&review_id='.$missingReviewId;
+                                                                $_versionLabel   = $missingReviewVersion ? ' (Validated v'.$missingReviewVersion.')' : ' (Validated)';
+                                                            } else {
+                                                                $_versionLabel   = ' (Validated)';
+                                                            }
+                                                        }
+
+                                                        if(get_assessment_chart_image($assessment->assessment_id, '', '', $missingOverride, $missingReviewVersion) === false) {
+                                                            $missing_chart .= "<a href='".get_settings_option('home')."/chart-preview/?chart_type=full&assessment_id=".$assessment->assessment_id.$_versionParams."&store=1'>Three Charts Image".$_versionLabel."</a><br/><br/>";
+                                                        }
+                                                        if(get_assessment_chart_image($assessment->assessment_id, 'single', '', $missingOverride, $missingReviewVersion) === false){
+                                                            $missing_chart .= "<a href='".get_settings_option('home')."/chart-preview/?chart_type=single&assessment_id=".$assessment->assessment_id.$_versionParams."&store=1'>Single Chart Image".$_versionLabel."</a><br/><br/>";
                                                         }
                                                         echo $missing_chart;
                                                         ?>

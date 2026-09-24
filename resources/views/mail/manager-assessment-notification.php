@@ -120,15 +120,29 @@
                                                 <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
                                                     A new report is available for <strong><?=ucfirst($participantName)?></strong>. A download link is provided below for easy access.
                                                 </p>
-                                                <p>
-                                                    <?php if(file_exists($personalFilePath)){ ?>
-                                                        <a href="<?=get_settings_option('home').'/assessments/pdf/'.$personalReportName?>" download="download" target="_blank" style="font-size: 18px; font-family:'Open Sans', sans-serif !important;padding: 10px 20px;line-height: normal;border-radius: 1px!important;color: #fff;background-color: #007bff;border-color: #007bff;text-decoration:none;text-transform: uppercase;">Download Personal Report</a>
-                                                    <?php } ?>
+                                                <?php if(file_exists($personalFilePath)){ ?>
+                                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+                                                    <tbody>
+                                                        <tr>
+                                                            <td style="border-radius: 4px; background-color: #007bff;">
+                                                                <a href="<?=get_settings_option('home').'/assessments/pdf/'.$personalReportName?>" download="download" target="_blank" style="display:inline-block;font-family:Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;text-transform:uppercase;padding:12px 24px;border-radius:4px;background-color:#007bff;">Download Personal Report</a>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                                <?php } ?>
 
-                                                    <?php if(file_exists($managerFilePath)){ ?>
-                                                        <a href="<?=get_settings_option('home').'/assessments/pdf/'.$managerReportName?>" download="download" target="_blank" style="font-size: 18px; font-family:'Open Sans', sans-serif !important;padding: 10px 20px;line-height: normal;border-radius: 1px!important;color: #fff;background-color: #00b0f0;border-color: #00b0f0;text-decoration:none;text-transform: uppercase;display: inline-block;text-align: center;">Download Manager Report</a>
-                                                    <?php } ?>
-                                                </p>
+                                                <?php if(file_exists($managerFilePath)){ ?>
+                                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+                                                    <tbody>
+                                                        <tr>
+                                                            <td style="border-radius: 4px; background-color: #00b0f0;">
+                                                                <a href="<?=get_settings_option('home').'/assessments/pdf/'.$managerReportName?>" download="download" target="_blank" style="display:inline-block;font-family:Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;text-transform:uppercase;padding:12px 24px;border-radius:4px;background-color:#00b0f0;">Download Manager Report</a>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                                <?php } ?>
                                             </td>
                                         </tr>
                                     </tbody>

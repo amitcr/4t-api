@@ -3,6 +3,7 @@ namespace App\Services\Api;
 
 use App\Services\Http\BaseHttpService;
 
+// TODO: No GraphQL equivalent defined in developer guide.
 class SelfAssessmentSectionsService extends BaseHttpService
 {
     protected string $endpoint = 'self-assessment-sections';

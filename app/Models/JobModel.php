@@ -12,8 +12,11 @@ class JobModel extends BaseModel
         'job_class',
         'payload',
         'status',
+        'attempts',
+        'available_at',
         'reserved_at',
         'created_at',
-        'completed_at'
+        'completed_at',
+        'failed_at',
     ];
 }
