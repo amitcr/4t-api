@@ -179,7 +179,7 @@ class BaseHttpService
     protected function delete(string $uri, array $headers = [])
     {
         $req = $headers ? $this->withHeaders($headers) : $this->http;
-        return $this->handleRequest(fn() => $req->delete($uri), 'DELETE', $uri, ['headers' => $data, 'query' => $data]);
+        return $this->handleRequest(fn() => $req->delete($uri), 'DELETE', $uri, ['headers' => $headers]);
     }
 
     protected function graphql(string $endpoint, string $query, array $variables = [], array $headers = [])

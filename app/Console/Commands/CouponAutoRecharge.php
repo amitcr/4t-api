@@ -126,9 +126,11 @@ class CouponAutoRecharge implements CommandInterface
                         }
                     }
                 }
-            }catch (Exception $e) {
-				$response = $e->getJsonBody();
-                Logger::info("Auto Recharge of ".$coupon->coupon_code." code failed due to: ".$response['error']);
+            }catch (\Exception $e) {
+				// Stripe exceptions carry a JSON body; anything else only has a message.
+				$response = method_exists($e, 'getJsonBody') ? $e->getJsonBody() : null;
+				$reason   = isset($response['error']) ? json_encode($response['error']) : $e->getMessage();
+                Logger::info("Auto Recharge of ".$coupon->coupon_code." code failed due to: ".$reason);
             }
         }
         // Logger::info('Cron coupons:coupon-auto-recharge completed');

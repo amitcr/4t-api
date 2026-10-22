@@ -74,6 +74,7 @@ class SESMailer implements MailerInterface
                 ]); // Log email sent in OffloadSES
                 return !empty($result['MessageId']);
             }
+            return false;
         } catch (AwsException $e) {
             // error_log("SES Mailer Error: " . $e->getAwsErrorMessage());
             Logger::error("SES Mailer Error: " . $e->getAwsErrorMessage());
