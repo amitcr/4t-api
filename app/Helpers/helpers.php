@@ -298,7 +298,8 @@ if(!function_exists('get_assessment_participant_name')){
         if(empty($assessment))
             return '';
 
-        $participantName = !empty($assessment->first_name) ? $assessment->first_name.' '.$assessment->last_name : (isset($assessment->user) ? $assessment->user_display_name : '');
+        // Add the space only when there is a last name: "Amit " would become "Amit--" in report file names.
+        $participantName = !empty($assessment->first_name) ? trim($assessment->first_name.(!empty($assessment->last_name) ? ' '.$assessment->last_name : '')) : (isset($assessment->user) ? $assessment->user_display_name : '');
         $participantFirstName = !empty($assessment->first_name) ? $assessment->first_name : '';
         $participantLastName = !empty($assessment->last_name) ? $assessment->last_name : '';
         if(empty($participantName)){
