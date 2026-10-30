@@ -42,6 +42,11 @@ class AssessmentReportService
             }
             Logger::info('Assessment override Status '. $assessment->assessment_id .' ' .$override);
 
+            // Regenerate run (admin patch): rebuild even if the PDF exists (old file kept as a .bak copy),
+            // send only the "report available" emails, and skip all emails when suppress_emails is set.
+            $regenerate     = !empty($attr['regenerate']);
+            $suppressEmails = !empty($attr['suppress_emails']);
+
             // review_id identifies the review ROW; its per-assessment `version` drives the
             // PDF/chart "-v{n}" naming and the coach override entry.
             $reviewId = (isset($attr['review_id']) && !empty($attr['review_id'])) ? (int) $attr['review_id'] : null;
@@ -58,15 +63,15 @@ class AssessmentReportService
 
             $personalFilePath = ($override == true) ? PROJECT_ROOT.'/assessments/override/pdf/'.$personalReportName : PROJECT_ROOT.'/assessments/pdf/'.$personalReportName;
 
-            if( ($override == false) && ($assessment->pdf_status == 1 && file_exists($personalFilePath)) )
-                continue;
-            
-            if( ($override == true) && (file_exists($personalFilePath)) )
+            if( !$regenerate && ($override == false) && ($assessment->pdf_status == 1 && file_exists($personalFilePath)) )
                 continue;
 
-            
+            if( !$regenerate && ($override == true) && (file_exists($personalFilePath)) )
+                continue;
+
+
             // Validate if PDF file already created or not
-            if(file_exists($personalFilePath)){
+            if(!$regenerate && file_exists($personalFilePath)){
                 Logger::info('Assessment Report already exists for '.$assessment->assessment_id);
                 $assessment->pdf_status = 1;   
                 $assessment->save();
@@ -93,7 +98,7 @@ class AssessmentReportService
                 $selfResponses = $snapshot->selfAssessmentResponses->data ?? [];
                 foreach ($selfResponses as $selfResponse) {
                     if (!empty($selfResponse->mostChoice)) {
-                        $temperament = strtoupper($selfResponse->leastChoice->temperament ?? '');
+                        $temperament = strtoupper($selfResponse->mostChoice->temperament ?? '');
                         switch ($temperament) {
                             case 'D': $dMostChoices[] = $selfResponse->mostChoice; break;
                             case 'I': $iMostChoices[] = $selfResponse->mostChoice; break;
@@ -140,6 +145,13 @@ class AssessmentReportService
                 include PROJECT_ROOT . "/api/resources/views/template-report.php";
                 $personalReportHtml = ob_get_clean();
 
+                if ($regenerate && file_exists($personalFilePath)) {
+                    $backupPath = $personalFilePath . '.bak-' . date('YmdHis');
+                    if (!@rename($personalFilePath, $backupPath)) {
+                        Logger::info('Regenerate: failed to back up existing report ' . $personalFilePath);
+                    }
+                }
+
                 $this->createPDFReportFile($personalFilePath, $personalReportHtml, ['layout' => array(215,307), 'spacing' => array(0,0,0,0)]);
 
                 // Mark this validation's report as generated on the review row.
@@ -177,7 +189,7 @@ class AssessmentReportService
                                 $managerFilePath   = $managerResult['path'];
 
                                 // Manager email only on the original run, and only when just generated.
-                                if (!$override && !empty($managerResult['generated'])) {
+                                if (!$override && !$suppressEmails && !empty($managerResult['generated'])) {
                                     $managerEmails = CouponManagerModel::with('user')->where('coupon_id', $coupon->coupon_id)->get()->pluck('user.user_email')->toArray();
                                     if(!empty($managerEmails)){
                                         $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : implode(",",$managerEmails);
@@ -189,7 +201,7 @@ class AssessmentReportService
                             }
                         }
 
-                        if(!$override){
+                        if(!$override && !$suppressEmails){
                             $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $coupon->user->user_email;
                             if(!empty($sendTo)){
                                 Mail::send($sendTo, 'New Assessment Profile', 'affiliate-company-assessment-notification', ['assessment' => $assessment, 'coupon' => $coupon, 'personalFilePath' => $personalFilePath, 'personalReportName' => $personalReportName , 'managerFilePath' => $managerFilePath, 'managerReportName' => $managerReportName, "participantName" => $participantName]);
@@ -205,7 +217,7 @@ class AssessmentReportService
                     }
                 }
 
-                if(!$override){
+                if(!$override && !$suppressEmails){
                     if($holdReport == false){
                         $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $assessment->user->user_email;
                         if(!empty($sendTo)){
@@ -213,7 +225,8 @@ class AssessmentReportService
                         }
                     }
 
-                    if($assessment->payment->end_price > 0){
+                    // Payment thank-you is never re-sent on a regenerate run.
+                    if(!$regenerate && $assessment->payment->end_price > 0){
                         $sendTo = Config::get('app.env') == "local" ? Config::get('app.email') : $assessment->user->user_email;
                         if(!empty($sendTo)){
                             $assessmentCoupons = CouponTrackingModel::where(['assessment_id' => $assessment->assessment_id, 'usage_status' => 'completed'])->orderBy('id', 'ASC')->get();
