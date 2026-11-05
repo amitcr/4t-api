@@ -64,7 +64,7 @@ class MiniUsageReminder implements CommandInterface
                 continue;
             }
 
-            $to = in_array(Config::get('app.env'), ['local', 'staging'])
+            $to = Config::get('app.env') === 'local'
                 ? Config::get('app.email')
                 : $coupon->user->user_email;
 

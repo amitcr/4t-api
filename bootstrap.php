@@ -18,6 +18,13 @@ if (file_exists($composer)) {
     });
 }
 
+// Swallow deprecations raised inside third-party vendor code (e.g. tecnickcom/tcpdf 6.11+
+// raises E_USER_DEPRECATED on every PDF) so they never leak into JSON responses or
+// CLI output. Deprecations from our own code still surface.
+set_error_handler(static function (int $errno, string $errstr, string $errfile = ''): bool {
+    return str_contains(str_replace('\\', '/', $errfile), '/vendor/');
+}, E_DEPRECATED | E_USER_DEPRECATED);
+
 // optional .env loader (simple)
 if (file_exists(__DIR__ . '/.env')) {
     foreach (file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {

@@ -36,8 +36,7 @@ class SMTPMailer implements MailerInterface
 
             return $mail->send();
         } catch (Exception $e) {
-            // error_log("SMTP Mailer Error: {$mail->ErrorInfo}");
-            Logger::error("SES Mailer Error: " . $e->getAwsErrorMessage());
+            Logger::error("SMTP Mailer Error: " . ($mail->ErrorInfo ?: $e->getMessage()));
             return false;
         }
     }

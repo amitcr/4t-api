@@ -29,7 +29,7 @@ The **credit reversal, auto-recharge, and usage-count reconciliation** math for 
    - **Mini** codes: `charged = mini_usage_limit × |mini_price|`, `used = usage_counter × |mini_price|`.
    - **Affiliate credits-based** (`affiliate_share < 0`): `charged = usage_limit × |affiliate_share|`.
    - **Company** (`discount_amount > 0`): `charged = usage_limit × |discount_amount|`.
-   - The reversal is credited back to the **`affiliate`** or **`company`** per the coupon's `reversed_credits_to`, recorded as a `transaction_type='reversal'` ledger row.
+   - The reversal is credited back to the **`affiliate`** or **`company`** per the coupon's `reversed_credits_to`, posted through `CreditLedgerService` as a `reversal` entry keyed `reversal_coupon_<coupon id>` (a re-run reverses once).
    - **Commission codes with `affiliate_share >= 0` are untouched** (no reversal).
 3. **Expire only `pending` tracking rows** (`usage_status: pending → expired`). **`assigned`/`completed` stay counted** — past real uses must remain counted when a code expires.
 4. **Upgrade children:** for each `parent_code_id = this coupon` prepaid child — same reversal, expire its `pending` rows, then **settle its `usage_limit` down to its used count** and set `status='expired'`.
@@ -44,8 +44,8 @@ The **credit reversal, auto-recharge, and usage-count reconciliation** math for 
 `CouponAutoRecharge` (every minute). For each **active** coupon with `coupondetail.auto_recharge = 1` that is near its limit — **`(usage_count / usage_limit) × 100 >= 80`**, or `usage_limit < 5 and (usage_limit − usage_count) <= 1`:
 
 1. Resolve the coupon's saved `PaymentMethodModel` (`coupondetail.payment_method_id`).
-2. Charge a Stripe **PaymentIntent** for `auto_recharge_limit × |affiliate_share|` (i.e. `auto_recharge_limit` new uses at the code's end-price economics).
-3. On success: record a `transaction_type='charge'` ledger row, **`increment('usage_limit', auto_recharge_limit)`**, reset `auto_recharge_email`, and send the **auto-recharge invoice** email.
+2. Charge a Stripe **PaymentIntent** for `auto_recharge_limit × |affiliate_share|` (i.e. `auto_recharge_limit` new uses at the code's end-price economics), with Stripe idempotency key `auto_recharge_<coupon_id>_<usage_limit>` so overlapping runs cannot charge twice.
+3. On success, in one transaction through `CreditLedgerService`: `auto_recharge` +X, `charge` −X (**net zero**: the card pays for the credits, the credits pay for the uses), **`increment('usage_limit', auto_recharge_limit)`**, reset `auto_recharge_email`. Then, after commit, and send the **auto-recharge invoice** email.
 
 **Auto-recharge only ever tops up `usage_limit` — never `mini_usage_limit` (mini codes are not auto-recharged).**
 

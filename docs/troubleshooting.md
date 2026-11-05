@@ -78,7 +78,7 @@ Common failure modes and where to look. The service is mostly invisible until so
 
 | Symptom | Likely cause |
 |---|---|
-| No emails in dev | `APP_ENV=local`/`staging` redirects all mail to `APP_EMAIL`. |
+| No emails in dev | `APP_ENV=local` redirects all API mail to `APP_EMAIL` (look for `Mail redirected` in `api/logs/`). Staging sends to real recipients. |
 | Nothing sends in prod | SES/SMTP/Mailjet misconfigured in `config/mailer.php` / `.env`. |
 | Async email never sent | `SendEmailJob` needs the worker running. |
 
@@ -90,6 +90,7 @@ Common failure modes and where to look. The service is mostly invisible until so
 |---|---|
 | Credits not reversed on expiry | `coupons:expire-status` didn't run — check cron + `api/logs/`. |
 | Prepaid didn't auto-recharge | `coupons:coupon-auto-recharge`; requires config + a saved payment method. Mini codes never recharge. |
+| `credits:reconcile` reports a difference | Something wrote a balance column outside the ledger (manual DB edit, old code). Compare the account's newest ledger rows with the column; correct it through the ledger, never by editing the column alone. |
 | `usage_count` drift | Run `coupons:resync-usage-count`; **the API never writes `usage_count`** directly ([features/coupons-and-credits.md](features/coupons-and-credits.md)). |
 
 ---

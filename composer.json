@@ -8,16 +8,33 @@
     ]
   },
   "require": {
-    "illuminate/database": "^8.83",
-    "vlucas/phpdotenv": "^5.6",
-    "illuminate/http": "^8.83",
+    "illuminate/database": "^13.0",
+    "vlucas/phpdotenv": "^5.8",
+    "illuminate/http": "^13.0",
     "guzzlehttp/guzzle": "^7.10",
     "fakerphp/faker": "^1.24",
-    "phpmailer/phpmailer": "^6.10",
-    "aws/aws-sdk-php": "^3.337",
+    "phpmailer/phpmailer": "^7.1",
+    "aws/aws-sdk-php": "^3.402",
     "stripe/stripe-php": "^17.6",
-    "google/apiclient": "^2.3.0",
-    "mailjet/mailjet-apiv3-php": "^1.6",
-    "spipu/html2pdf": "^5.3"
+    "google/apiclient": "^2.20",
+    "mailjet/mailjet-apiv3-php": "^1.6.8",
+    "spipu/html2pdf": "^5.3",
+    "tecnickcom/tcpdf": "6.11.2"
+  },
+  "scripts": {
+    "pre-autoload-dump": "Google\\Task\\Composer::cleanup"
+  },
+  "extra": {
+    "google/apiclient-services": [
+      "Sheets"
+    ]
+  },
+  "config": {
+    "platform": {
+      "php": "8.5.0"
+    },
+    "allow-plugins": {
+      "php-http/discovery": true
+    }
   }
 }

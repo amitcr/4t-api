@@ -6,7 +6,7 @@ use App\Models\AffiliateModel;
 use App\Models\CompanyModel; 
 use App\Models\UserModel; 
 use App\Models\CouponTrackingModel;
-use App\Models\TransactionModel;
+use App\Services\CreditLedgerService;
 use App\Core\CommandInterface;
 use App\Core\Logger;
 use Carbon\Carbon;
@@ -75,13 +75,15 @@ class ValidateCoupons implements CommandInterface
                     'created_datetime' => Carbon::now()
                 ];
 
-                $transaction = TransactionModel::create($transaction_array);                
-
-                if($object_type == "company"){
-                    CompanyModel::where('company_id', $coupon->company_id)->increment('credits', $unused_charges);
-                }else{
-                    AffiliateModel::where('affiliate_id', $coupon->affiliate_id)->increment('unused_credits', $unused_charges);
-                }
+                // Credit ledger (wp-affiliates-coupons 1.1.2): balance + history row in one transaction,
+                // keyed on the coupon so a re-run can never reverse the same code twice.
+                self::postReversal(
+                    $object_type,
+                    (int) ($object_type == "company" ? $coupon->company_id : $coupon->affiliate_id),
+                    $unused_charges,
+                    $coupon->coupon_id,
+                    $transaction_array['notes']
+                );
 
                 CouponTrackingModel::where(['coupon_id' => $coupon->coupon_id, 'usage_status' => 'pending'])->update(['usage_status' => 'expired']);
             }
@@ -107,9 +109,7 @@ class ValidateCoupons implements CommandInterface
                                 'created_datetime' => Carbon::now()
                             ];
 
-                            TransactionModel::create($transaction_array);
-
-                            AffiliateModel::where('affiliate_id', $upgradeCoupon->affiliate_id)->increment('unused_credits', $unused_charges);
+                            self::postReversal('affiliate', (int) $upgradeCoupon->affiliate_id, $unused_charges, $upgradeCoupon->coupon_id, $transaction_array['notes']);
 
                             CouponTrackingModel::where(['coupon_id' => $upgradeCoupon->coupon_id, 'usage_status' => 'pending'])->update(['usage_status' => 'expired']);
 
@@ -140,5 +140,30 @@ class ValidateCoupons implements CommandInterface
             $coupon->save();
         }
         // Logger::info('Cron coupons:expire-status completed');
+    }
+    /**
+     * Posts an expiry reversal to the credit ledger (code credits; signed, as before).
+     * A failure is logged and does not stop the rest of the expiry run.
+     */
+    private static function postReversal(string $accountType, int $accountId, $amount, $couponId, string $notes): void
+    {
+        // Nothing to give back (e.g. an upgrade code that was fully used): no entry, as there is no change.
+        if (!is_numeric($amount) || round((float) $amount, 2) == 0.0) {
+            return;
+        }
+
+        try {
+            CreditLedgerService::post($accountType, $accountId, [
+                'bucket'          => 'code_credits',
+                'entry_type'      => 'reversal',
+                'amount'          => $amount,
+                'reference_type'  => 'coupon',
+                'reference_id'    => $couponId,
+                'idempotency_key' => 'reversal_coupon_' . $couponId,
+                'public_note'     => $notes,
+            ]);
+        } catch (\Throwable $e) {
+            Logger::error("coupons:expire-status: reversal of {$amount} to {$accountType} #{$accountId} for coupon #{$couponId} failed: " . $e->getMessage());
+        }
     }
 }

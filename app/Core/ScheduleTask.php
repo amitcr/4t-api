@@ -38,7 +38,7 @@ class ScheduleTask
         return $this;
     }
 
-    public function isDue(\DateTime $date = null): bool
+    public function isDue(?\DateTime $date = null): bool
     {
         if (!$date) {
             $date = $this->timezone 

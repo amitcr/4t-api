@@ -103,7 +103,6 @@ class BaseGraphQLService
             $body  = curl_exec($ch);
             $errno = curl_errno($ch);
             $error = curl_error($ch);
-            curl_close($ch);
 
             if ($errno !== 0) {
                 Logger::error('BaseGraphQLService: cURL transport error', [

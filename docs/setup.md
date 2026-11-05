@@ -20,13 +20,13 @@ A **standard PHP + MySQL host** (production is cPanel/EasyApache, Apache + MySQL
 
 | Requirement | Supported |
 |---|---|
-| **PHP** | **8.2 minimum** (production baseline); must also run on **8.3, 8.4, 8.5**. No dynamic (undeclared) object properties. |
+| **PHP** | **8.5** (`config.platform.php` = 8.5.0 in `composer.json`; the locked vendor does not run on 8.2). No dynamic (undeclared) object properties, no implicit-nullable typed params. |
 | **Database** | **MySQL 5.7+** or **MariaDB 10.3+** — the **same** DB the WordPress plugins use, with the same WordPress table prefix (`{prefix}` in these docs). |
 | **Web server** | **Apache** (production; ships `public/.htaccess` rewriting `/api/*` → `public/index.php`). **Nginx** / **LiteSpeed** need the equivalent rewrite. |
 | **Operating system** | Any mainstream **Linux** (Ubuntu, Debian, AlmaLinux, Rocky, CentOS); Windows/macOS for dev. |
 | **Composer** | Required. |
 
-**Required PHP extensions:** `pdo_mysql`/`mysqli`, `curl` (Guzzle / Scoring Engine / Stripe / Mailjet / AWS SES / Google), `json`, `mbstring`, `openssl` (JWT + `WpCryptoService`), `gd` + `dom`/`libxml` (html2pdf), `fileinfo`, `zip`. `bcmath` recommended for the payment SDKs.
+**Required PHP extensions:** `pdo_mysql`/`mysqli`, `curl` (Guzzle / Scoring Engine / Stripe / Mailjet / AWS SES / Google), `json`, `mbstring`, `openssl` (JWT + `WpCryptoService`), `gd` with FreeType (charts via `imagettftext`; html2pdf) + `dom`/`libxml`, `fileinfo`, `zip`, `sodium`. `bcmath` recommended for the payment SDKs; `pcntl`/`posix` on the CLI for the worker. On PHP 8.5 `openssl` is often compiled in — a second `extension=openssl` line makes every run warn "Module already loaded", so remove it.
 
 ---
 
@@ -38,7 +38,9 @@ From the `api/` directory:
 composer install
 ```
 
-`vendor/`, `composer.lock`, `.env`, `*.log`, and `credentials.json` are **gitignored** — provisioned on the server, not committed. There is **no build step** and **no migrations** (this app owns no schema).
+On a server use `composer install --no-dev --optimize-autoloader --no-interaction` — never `composer update`, never `--ignore-platform-req`.
+
+**`composer.lock` is committed**, so every environment installs the exact tested versions (e.g. Illuminate 13.39.0; Stripe held at `^17.6`; TCPDF pinned to `6.11.2`, because 6.11.3+ raises a deprecation on every PDF). `vendor/`, `.env`, `*.log`, `credentials.json`, `public/.htaccess` and `resources/images/` are **gitignored** — provisioned on the server. After any vendor rebuild, copy the 25 custom `proxima_*` font files back into `vendor/tecnickcom/tcpdf/fonts/`. There is **no build step** and **no migrations** (this app owns no schema).
 
 ---
 
@@ -80,7 +82,7 @@ Unique to this repo (the plugins don't need these):
 
 ## `APP_ENV` changes behavior
 
-**`APP_ENV=local`/`staging` changes runtime behavior, not just values:** all outbound email is redirected to `APP_EMAIL`, temp-user emails use a staging host, and the abandoned-followup window widens to ~365 days instead of the production 60–70 minutes. Confirm `APP_ENV` before reasoning about email or timing.
+**`APP_ENV` changes runtime behavior, not just values:** On `APP_ENV=local` all outbound API email is redirected to `APP_EMAIL` (centrally, in `App\Core\Mail\Mail::send()`, which logs each redirect); staging and production send to the real recipients; PHP errors are displayed only on `local`; on `local`/`staging` temp-user emails use a staging host, and the abandoned-followup window widens to ~365 days instead of the production 60–70 minutes. Confirm `APP_ENV` before reasoning about email or timing.
 
 ---
 

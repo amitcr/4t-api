@@ -70,7 +70,7 @@ Plus invoice/confirmation emails sent inline by `coupons:coupon-auto-recharge` (
 
 ## Environment behavior
 
-On **`APP_ENV=local`/`staging`**, all outbound email is **redirected to `APP_EMAIL`** (`Config::get('app.email')`) — the report/notification code checks `Config::get('app.env')` and swaps the recipient. Confirm `APP_ENV` before reasoning about who receives what.
+On **`APP_ENV=local`** only, all outbound email is **redirected to `APP_EMAIL`** (`Config::get('app.email')`). `App\Core\Mail\Mail::send()` does this centrally for every sender and logs `Mail redirected (APP_ENV=local): …`; staging and production send to the real recipients. Mailjet workflow emails (abandoned follow-up) are sent by Mailjet and are not redirected. Confirm `APP_ENV` before reasoning about who receives what.
 
 ---
 

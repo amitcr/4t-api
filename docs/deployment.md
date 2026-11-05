@@ -15,9 +15,9 @@ How the API service reaches production. There is **no CI or deploy script** — 
 
 ## Environments
 
-- **Production** runs on **cPanel hosting** (EasyApache, `ea-php82`) with Apache + MySQL. `.user.ini` is cPanel-generated — don't hand-edit it.
-- **Target PHP is 8.2** in production (also must run on 8.3/8.4/8.5).
-- Three independent git repos plus the external Scoring Engine; the WordPress root itself is **not** a git repo.
+- **Production** runs on **cPanel hosting** (EasyApache) with Apache + MySQL. `.user.ini` is cPanel-generated — don't hand-edit it.
+- **Target PHP is 8.5** (`ea-php85`). The PHP 8.5 release moves production straight from `ea-php82`; the locked vendor (`config.platform.php` = 8.5.0) does not run on 8.2, so code, vendor and PHP version always move together. The step-by-step cut-over and rollback are in the PHP 8.5 runbook (https://claude.ai/artifact/YMh6a1ewvHiAqJ4z1bbh2T).
+- Four git repos (`api/`, `wp-temperament-assessment`, `wp-affiliates-coupons`, `ft-mailjet-pro`) plus the external Scoring Engine; the WordPress root itself is **not** a git repo.
 
 ---
 
@@ -27,9 +27,15 @@ SSH into the server and `git pull` in each affected repo:
 
 ```bash
 cd api && git pull
-# if composer.json changed:
-composer install --no-dev
+# whenever composer.json / composer.lock changed (always on the PHP 8.5 release):
+composer install --no-dev --optimize-autoloader --no-interaction
+cp <backup>/proxima_* vendor/tecnickcom/tcpdf/fonts/   # custom PDF fonts; a fresh TCPDF folder lacks them
+systemctl restart ft-queue-worker                       # the worker keeps old code in memory
 ```
+
+- **`composer.lock` is tracked in git** (api, P1 and `ft-mailjet-pro`). Always `install` from it on a server — **never `composer update`**, and never `--ignore-platform-req`. The first pull after the lock became tracked fails on the server's old untracked copy: move it aside (`mv composer.lock composer.lock.pre-php85`) before pulling.
+- **P1 and `ft-mailjet-pro` deploy together** and each runs its own `composer install --no-dev`: both ship Mailjet + Guzzle, and the last-registered autoloader wins at runtime, so an old/new mix breaks Mailjet calls.
+- The 25 `proxima_*` fonts in `vendor/tecnickcom/tcpdf/fonts/` are not part of the package. Back them up before a vendor rebuild and copy them back after (84 font `.php` files in total).
 
 A change spanning the API and a plugin is **two commits in two repos**.
 
@@ -65,7 +71,10 @@ There are **no migrations.** Schema changes are made in the plugin that owns the
 
 - **Worker restarted** and processing (`api/logs/`, `{prefix}jobs` draining).
 - **Cron running** `schedule:run` (check due commands executed in `api/logs/`).
-- **`.env` sane** for the environment (`APP_ENV`, DB, `JWT_SECRET`, scoring keys) — never assume local values.
+- **`.env` sane** for the environment (`APP_ENV`, DB, `JWT_SECRET`, scoring keys) — never assume local values. Production must be `APP_ENV=production`: `local` redirects every API email to `APP_EMAIL` and prints PHP errors into responses.
+- **Clean JSON:** `curl -s https://<domain>/api/v1/health | head -c 1` prints `{` (no `<br />` / `Deprecated` in front).
+- **Credit ledger table:** `affcp_credit_ledger` is created by Plugin 2 on the first **wp-admin** page load after deploy. Load wp-admin before restarting the crons: the credit crons cannot post without it.
+- **Ledger check:** `php artisan credits:reconcile` reports 0 differences.
 - **`usage_count` backfill:** run `php artisan coupons:resync-usage-count` once after a deploy that touched coupon counting.
 - **Smoke:** a completed assessment produces a PDF (`assessments/pdf/`, `pdf_status=1`).
 

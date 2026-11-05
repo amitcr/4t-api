@@ -99,7 +99,7 @@ Override (validated) runs carry `override:true` + `review_id`. The service uses 
 
 ## Emails on generation
 
-Sent from `generateReport()` (recipients redirected to `APP_EMAIL` when `APP_ENV` is `local`/`staging`):
+Sent from `generateReport()` (recipients redirected to `APP_EMAIL` when `APP_ENV` is `local`):
 - **Manager report ready** → coupon managers (`manager-assessment-notification`).
 - **Affiliate/company notification** → `affiliate-company-assessment-notification`.
 - **Missing-charts alert** → admin (`assessment-images-missing`).

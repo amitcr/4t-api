@@ -17,6 +17,7 @@ Every `artisan` command, from `app/Console/Kernel.php` (`commands()` registers t
 | `assessments:delete-duplicates` | `DeleteDuplicateAssessments` | daily 06:00 | Remove duplicate assessments |
 | `assessments:sync-stats` | `ExportAssessmentStats` | daily 06:05 | Export stats to Google Sheets |
 | `coupons:resync-usage-count` | `ResyncCouponUsageCount` | daily 06:10 | Recompute cached `usage_count` from tracking rows |
+| `credits:reconcile` | `ReconcileCredits` | daily 06:15 | Report balances that differ from the newest ledger entry (changes nothing) |
 | `emails:mini-usage-reminder` | `MiniUsageReminder` | daily 16:05 | Mini-report usage running low |
 
 Details: [../features/scheduled-commands.md](../features/scheduled-commands.md), [../features/coupons-and-credits.md](../features/coupons-and-credits.md), [../features/emails.md](../features/emails.md).
@@ -48,6 +49,7 @@ php artisan schedule:run                 # run all due scheduled tasks once (sys
 php artisan queue:work                   # start the worker (keep running)
 php artisan coupons:expire-status        # run a single command manually
 php artisan coupons:resync-usage-count   # post-deploy usage_count backfill
+php artisan credits:reconcile            # report balance vs. ledger differences (read-only)
 ```
 
 ---

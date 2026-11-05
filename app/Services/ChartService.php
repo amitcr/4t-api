@@ -161,7 +161,6 @@ class ChartService
 
         $this->ensureDir($savePath);
         $ok = imagepng($img, $savePath);
-        imagedestroy($img);
 
         return $ok !== false;
     }
@@ -220,7 +219,6 @@ class ChartService
 
         $this->ensureDir($savePath);
         $ok = imagepng($img, $savePath);
-        imagedestroy($img);
 
         return $ok !== false;
     }

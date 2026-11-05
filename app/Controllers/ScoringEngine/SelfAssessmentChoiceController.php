@@ -5,7 +5,7 @@ use App\Core\Response;
 use App\Services\Api\SelfAssessmentChoicesService;
 use Illuminate\Http\Client\RequestException;
 
-class ParticipantController
+class SelfAssessmentChoiceController
 {
     protected SelfAssessmentChoicesService $svc;
 

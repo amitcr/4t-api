@@ -19,7 +19,7 @@ Rules you must follow when editing the API. Most exist because this is a **custo
 
 ## PHP version
 
-- **Target PHP 8.2 → 8.5.** Production runs the minimum, 8.2; code must also run cleanly on 8.3/8.4/8.5. No dynamic (undeclared) object properties; avoid the 8.2–8.5 deprecations.
+- **Target PHP 8.5** (Composer platform 8.5.0; production moves from 8.2 straight to 8.5). No dynamic (undeclared) object properties; avoid deprecations through 8.5.
 
 ---
 

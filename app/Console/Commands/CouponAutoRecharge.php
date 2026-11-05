@@ -6,7 +6,7 @@ use App\Core\CommandInterface;
 use App\Models\CouponModel;  
 use App\Models\CouponDetailModel;
 use App\Models\PaymentMethodModel;
-use App\Models\TransactionModel;
+use App\Services\CreditLedgerService;
 use App\Models\UserMetaModel;
 use App\Models\CompanyModel;
 use App\Models\AffiliateModel;
@@ -79,51 +79,81 @@ class CouponAutoRecharge implements CommandInterface
                     'payment_method'    =>  $couponPaymentMethod->payment_method,
                     'off_session'   =>  true,
                     'confirm'   =>  true
+                ], [
+                    // One card charge per recharge: an overlapping or retried run gets Stripe's stored
+                    // result instead of a second charge. usage_limit grows after each successful
+                    // recharge, so the next real recharge uses a new key. (Stripe keeps keys 24h, so a
+                    // declined card is retried after that, not every minute.)
+                    'idempotency_key' => 'auto_recharge_'.$coupon->coupon_id.'_'.$coupon->usage_limit,
                 ]);
 
                 if($paymentIntent->id && $paymentIntent->status == "succeeded"){
-                    $transaction_array = [
-                        'amount'    =>  $amount,
-                        'transaction_type'  =>  'credit',
-                        'transaction_object_type'   =>  (!empty($coupon->company) && $coupon->company->user_id == $coupon->user_id) ? "company" : "affiliate",
-                        'object_id' =>  (!empty($coupon->company) && $coupon->company->user_id == $coupon->user_id) ? $coupon->company_id : $coupon->affiliate_id,
-                        'notes' =>  "Auto Credits added to for auto recharge of ".$coupon->coupon_code,
-                        'status'    =>  'success',
-                        'created_datetime' => Carbon::now()
+                    $isCompany   = !empty($coupon->company) && $coupon->company->user_id == $coupon->user_id;
+                    $accountType = $isCompany ? 'company' : 'affiliate';
+                    $accountId   = (int) ($isCompany ? $coupon->company_id : $coupon->affiliate_id);
+                    $newUsage    = $coupon->coupondetail->auto_recharge_limit;
+                    $chargeNote  = "Code Auto Recharge done for ".$coupon->coupon_code." added at $".number_format($coupon->end_price, 2)." of end price, with ".$newUsage." new usage.";
+
+                    /*
+                     * Credit ledger (wp-affiliates-coupons 1.1.2): balance change, history rows and the
+                     * coupon's new usage limit commit together; keyed on the PaymentIntent so a retried
+                     * or overlapping run can never apply the same recharge twice.
+                     *
+                     * The card pays $amount, which is added to the account as credits (+$amount), and
+                     * those same credits pay for the new usage (-$amount): the balance nets to zero.
+                     * (Before 1.1.2 only the -$amount was applied, so the account paid twice: by card
+                     * and from its credits. Decided 2026-11-04.)
+                     */
+                    $legs = [];
+                    $legs[] = [
+                        'bucket'          => 'code_credits',
+                        'entry_type'      => 'auto_recharge',
+                        'amount'          => $amount,
+                        'reference_type'  => 'stripe_pi',
+                        'reference_id'    => $paymentIntent->id,
+                        'idempotency_key' => 'stripe_pi_'.$paymentIntent->id,
+                        'public_note'     => "Auto Credits added for auto recharge of ".$coupon->coupon_code,
+                    ];
+                    $legs[] = [
+                        'bucket'          => 'code_credits',
+                        'entry_type'      => 'charge',
+                        'amount'          => -$amount,
+                        'reference_type'  => 'stripe_pi',
+                        'reference_id'    => $paymentIntent->id,
+                        'idempotency_key' => 'stripe_pi_'.$paymentIntent->id.':charge',
+                        'public_note'     => $chargeNote,
+                        'admin_note'      => 'Auto recharge of coupon #'.$coupon->coupon_id.' paid by card ('.$paymentIntent->id.', $'.number_format($amount, 2).').',
                     ];
 
-                    $transaction = TransactionModel::create($transaction_array);
+                    $result = null;
+                    try {
+                        $first  = array_shift($legs);
+                        $result = CreditLedgerService::post($accountType, $accountId, $first, [
+                            'inside' => function ($posted) use ($legs, $accountType, $accountId, $coupon, $newUsage) {
+                                foreach ($legs as $leg) {
+                                    CreditLedgerService::post($accountType, $accountId, $leg);
+                                }
+                                if (!$posted['duplicate']) {
+                                    CouponModel::where('coupon_id', $coupon->coupon_id)->increment('usage_limit', $newUsage);
+                                    CouponDetailModel::where('id', $coupon->coupondetail->id)->update(['auto_recharge_email' => 0]);
+                                }
+                            },
+                        ]);
+                    } catch (\Throwable $ledgerError) {
+                        // The card WAS charged: log everything needed to settle it by hand.
+                        Logger::error("Auto Recharge of ".$coupon->coupon_code.": card charged (".$paymentIntent->id.", $".$amount.") but the ledger / usage update failed: ".$ledgerError->getMessage());
+                    }
 
-                    if($transaction){                        
+                    if ($result && !$result['duplicate']) {
+                        // The invoice number shows "-L<ledger entry id>", as on the WordPress side.
+                        $transaction = (object) ['transaction_id' => 'L'.$result['entry_id'], 'amount' => $amount];
+
                         // use $coupon->user->user_email
                         Mail::send($coupon->user->user_email, 'Successful Auto Recharge Confirmation & Invoice', 'auto-recharge-invoice', ['coupon' => $coupon, 'transaction' => $transaction, 'paymentMethod' => $paymentMethod, 'paymentIntent' => $paymentIntent]);
 
-                        // TODO: Add Charge Transaction for Credits
-                        $transaction_array = [
-                            'amount'    =>  $amount,
-                            'transaction_type'  =>  'charge',
-                            'transaction_object_type'   =>  (!empty($coupon->company) && $coupon->company->user_id == $coupon->user_id) ? "company" : "affiliate",
-                            'object_id' =>  (!empty($coupon->company) && $coupon->company->user_id == $coupon->user_id) ? $coupon->company_id : $coupon->affiliate_id,
-                            'notes' =>  "Code Auto Recharge done for ".$coupon->coupon_code." added at $".number_format($coupon->end_price, 2)." of end price, with ".$coupon->coupondetail->auto_recharge_limit." new usage.",
-                            'status'    =>  'success',
-                            'created_datetime' => Carbon::now()
-                        ];
-
-                        $transaction = TransactionModel::create($transaction_array);
-                        if($transaction){
-                            CouponModel::where('coupon_id', $coupon->coupon_id)->increment('usage_limit', $coupon->coupondetail->auto_recharge_limit);
-                            CouponDetailModel::where('id', $coupon->coupondetail->id)->update(['auto_recharge_email' => 0]);
-
-                            if(!empty($coupon->company) && $coupon->company->user_id == $coupon->user_id){
-                                CompanyModel::where('company_id', $coupon->company_id)->decrement('credits', $amount);
-                            }else{
-                                AffiliateModel::where('affiliate_id', $coupon->affiliate_id)->decrement('unused_credits', $amount);
-                            }
-
-                            $coupon = CouponModel::with(['user', 'affiliate', 'company', 'coupondetail'])->find($coupon->coupon_id);
-                            // use $coupon->user->user_email
-                            Mail::send($coupon->user->user_email, 'Your Prepaid Code at FourTemperaments Has Been Auto-Recharged', 'coupon-auto-recharged', ['coupon' => $coupon, 'transaction' => $transaction, 'paymentMethod' => $paymentMethod, 'paymentIntent' => $paymentIntent]);
-                        }
+                        $coupon = CouponModel::with(['user', 'affiliate', 'company', 'coupondetail'])->find($coupon->coupon_id);
+                        // use $coupon->user->user_email
+                        Mail::send($coupon->user->user_email, 'Your Prepaid Code at FourTemperaments Has Been Auto-Recharged', 'coupon-auto-recharged', ['coupon' => $coupon, 'transaction' => $transaction, 'paymentMethod' => $paymentMethod, 'paymentIntent' => $paymentIntent]);
                     }
                 }
             }catch (\Exception $e) {

@@ -38,6 +38,7 @@ From `Kernel::schedule()` (all times UTC):
 | `assessments:delete-duplicates` | daily 06:00 | `DeleteDuplicateAssessments` |
 | `assessments:sync-stats` | daily 06:05 | `ExportAssessmentStats` |
 | `coupons:resync-usage-count` | daily 06:10 | `ResyncCouponUsageCount` |
+| `credits:reconcile` | daily 06:15 | `ReconcileCredits` |
 | `emails:mini-usage-reminder` | daily 16:05 | `MiniUsageReminder` |
 
 `queue:work` (`QueueWorkerCommand`) is registered too but is **not scheduled** — it runs as a separate persistent process ([background-jobs-and-queue.md](background-jobs-and-queue.md)).
@@ -53,6 +54,7 @@ From `Kernel::schedule()` (all times UTC):
 - **`coupons:expire-status`** (`ValidateCoupons`) — expires coupons past `end_date`; **reverses unused credits**; settles the credit-charged limit down to the used count; expires settled upgrade children. See [coupons-and-credits.md](coupons-and-credits.md).
 - **`coupons:coupon-auto-recharge`** — tops up prepaid `usage_limit` for auto-recharge codes (never `mini_usage_limit`).
 - **`coupons:resync-usage-count`** — recomputes the cached `usage_count` from tracking rows (daily + post-deploy backfill).
+- **`credits:reconcile`** — reports (logs) any account bucket whose balance column differs from its newest credit-ledger entry. Report only; it changes nothing.
 - **`emails:coupon-expire-reminder`** — 3-day coupon-expiry reminder.
 - **`emails:auto-recharge-reminder`** — the 70% upcoming auto-recharge reminder.
 - **`emails:mini-usage-reminder`** — mini-report "running low" email.

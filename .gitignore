@@ -4,9 +4,6 @@
 # Add vedor directories
 vendor/
 
-# Add composer.lock file
-composer.lock
-
 # add node modules directory
 node_modules/
 

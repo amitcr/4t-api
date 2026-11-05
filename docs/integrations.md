@@ -47,7 +47,7 @@ The Stripe SDK is used within the credit/commission crons and services (transfer
 - **AWS SES** (AWS SDK) is the production transport option; SMTP is available.
 - **Mailjet** — `MailjetService` + `Services/Mailjet/*` manage contacts/lists.
 - `SendEmailJob` sends email asynchronously via the queue. See [features/emails.md](features/emails.md).
-- On `APP_ENV=local`/`staging` all outbound mail is redirected to `APP_EMAIL`.
+- On `APP_ENV=local` all outbound API email is redirected to `APP_EMAIL` (centrally, in `App\Core\Mail\Mail::send()`, which logs each redirect); staging and production send to the real recipients.
 
 ---
 
