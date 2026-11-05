@@ -185,14 +185,23 @@ class PayoutResultService
     private function notify(object $payout, string $status): void
     {
         try {
-            $email = DB::table('users')->where('ID', $payout->user_id)->value('user_email');
-            if (!$email) {
+            $user = DB::table('users')->where('ID', $payout->user_id)->first(['user_email', 'display_name']);
+            if (!$user || !$user->user_email) {
                 return;
             }
 
+            $firstName = DB::table('usermeta')->where(['user_id' => $payout->user_id, 'meta_key' => 'first_name'])->value('meta_value');
+            $pageId    = get_settings_option(['affcp_settings' => ['affiliates_page']]);
+            $fresh     = DB::table(self::TABLE)->where('payout_id', $payout->payout_id)->first();
+
             $subject = $status === 'paid' ? 'Your withdrawal has been paid' : 'Your withdrawal was returned';
 
-            Mail::send($email, $subject, 'payout-result', ['payout' => $payout, 'status' => $status]);
+            Mail::send($user->user_email, $subject, 'payout-result', [
+                'payout'     => $fresh ?: $payout,
+                'status'     => $status,
+                'name'       => $firstName ?: $user->display_name,
+                'payoutsUrl' => rtrim((string) get_settings_option('home'), '/') . '/?page_id=' . (int) $pageId . '&tab=payouts&show=withdraw',
+            ]);
         } catch (Throwable $e) {
             Logger::warning("PayPal payout #{$payout->payout_id}: email failed: " . $e->getMessage());
         }
