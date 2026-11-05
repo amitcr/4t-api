@@ -11,6 +11,7 @@ use App\Controllers\AssessmentController;
 use App\Controllers\JobController;
 use App\Controllers\ParticipantController;
 use App\Controllers\ParticipantSessionController;
+use App\Controllers\PayPalWebhookController;
 
 use App\Controllers\ScoringEngine\ParticipantController as ScoringParticipantController;
 use App\Controllers\ScoringEngine\ParticipantSessionController as ScoringParticipantSessionController;
@@ -34,6 +35,9 @@ $router->group(['prefix' => '/v1', 'middleware' => [CorsMiddleware::class]], fun
     $r->get('/protected/secret', [ProtectedController::class, 'secret'], [JwtMiddleware::class]);
 
     
+    // PayPal webhook: no login, the signature is checked.
+    $r->post('/webhooks/paypal', [PayPalWebhookController::class, 'handle'], [RateLimitMiddleware::class]);
+
     // Auth routes
     $r->group(['prefix' => '/auth', 'controller' => [AuthController::class]], function($r) {
         $r->post('/login', 'login');

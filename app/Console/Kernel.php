@@ -17,6 +17,7 @@ use App\Console\Commands\ResyncCouponUsageCount;
 use App\Console\Commands\ReconcileCredits;
 use App\Console\Commands\MiniUsageReminder;
 use App\Console\Commands\PurgeOrphanReferrals;
+use App\Console\Commands\SyncPayPalPayouts;
 use App\Console\QueueWorkerCommand;
 
 class Kernel extends CronKernel
@@ -43,6 +44,7 @@ class Kernel extends CronKernel
         $schedule->command('coupons:resync-usage-count')->dailyAt('06:10')->timezone('UTC');
         $schedule->command('credits:reconcile')->dailyAt('06:15')->timezone('UTC');
         $schedule->command('emails:mini-usage-reminder')->dailyAt('16:05')->timezone('UTC');
+        $schedule->command('payouts:sync-paypal')->cron('*/15 * * * *');
 
     }
 
@@ -63,6 +65,7 @@ class Kernel extends CronKernel
         $this->register(ResyncCouponUsageCount::class);
         $this->register(ReconcileCredits::class);
         $this->register(MiniUsageReminder::class);
+        $this->register(SyncPayPalPayouts::class);
 
         // One-time backfill (manual run only — intentionally not scheduled).
         $this->register(PurgeOrphanReferrals::class);
