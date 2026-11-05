@@ -152,7 +152,7 @@ class PayoutResultService
             'reference_type'  => 'payout',
             'reference_id'    => $payout->payout_id,
             'idempotency_key' => 'payout_return_' . $payout->payout_id,
-            'public_note'     => "Withdrawal #{$payout->payout_id} returned by PayPal, amount returned",
+            'public_note'     => 'Withdrawal request of $' . number_format((float) $payout->amount, 2) . ' was returned by PayPal. The amount is back in your balance.',
             'source'          => 'api_cron',
         ], [
             // Same transaction as the refund: if another run got here first, nothing is written.
