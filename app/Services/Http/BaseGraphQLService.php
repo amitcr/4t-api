@@ -67,7 +67,7 @@ class BaseGraphQLService
             $envKey = (bool) get_settings_option('mytemp_settings.staging_mode')
                 ? 'graphql_endpoint_staging'
                 : 'graphql_endpoint_production';
-            Logger::error("BaseGraphQLService: GraphQL endpoint URL is not configured in WP settings (mytemp_settings.{$envKey}).");
+            Logger::error("BaseGraphQLService: GraphQL endpoint URL is missing or not HTTPS in WP settings (mytemp_settings.{$envKey}).");
             $this->lastError = 'The scoring service is not configured. Please contact support.';
             return null;
         }
@@ -147,17 +147,18 @@ class BaseGraphQLService
     /**
      * Resolves the active GraphQL endpoint URL.
      * Uses staging URL when staging_mode is enabled in WP settings,
-     * otherwise falls back to the production URL.
+     * otherwise falls back to the production URL. Only HTTPS is accepted, because
+     * these requests carry API keys. Returns '' when the URL is blank or not HTTPS.
      */
     private function resolveEndpointUrl(): string
     {
         $isStaging = (bool) get_settings_option('mytemp_settings.staging_mode');
 
-        if ($isStaging) {
-            return (string) get_settings_option('mytemp_settings.graphql_endpoint_staging');
-        }
+        $url = trim((string) get_settings_option(
+            $isStaging ? 'mytemp_settings.graphql_endpoint_staging' : 'mytemp_settings.graphql_endpoint_production'
+        ));
 
-        return (string) get_settings_option('mytemp_settings.graphql_endpoint_production');
+        return stripos($url, 'https://') === 0 ? $url : '';
     }
 
     /**
