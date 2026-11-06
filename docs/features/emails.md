@@ -79,3 +79,7 @@ On **`APP_ENV=local`** only, all outbound email is **redirected to `APP_EMAIL`**
 - [report-generation.md](report-generation.md) — generation emails
 - [coupons-and-credits.md](coupons-and-credits.md) — invoice / reminder emails
 - [scheduled-commands.md](scheduled-commands.md) · [integrations.md](../integrations.md)
+
+## Withdrawal and report upgrade emails
+
+`payout-result` (paid, returned) is sent by `PayoutResultService`; WordPress sends the same wording from `affcp_payout_email_affiliate()`, so change both. `participant-report-upgrade-notification` is sent by `AssessmentReportService` for an `upgrade` job.

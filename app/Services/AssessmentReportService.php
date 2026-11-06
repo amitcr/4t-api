@@ -31,6 +31,13 @@ class AssessmentReportService
         $chartImageMissingAssessments = [];
         foreach($assessments as $assessment){
             Logger::info('Assessment loop started');
+
+            // A report is upgraded once: a repeated click must not rebuild it or email again.
+            $upgrade = !empty($attr['upgrade']);
+            if ($upgrade && !empty($assessment->upgraded_at)) {
+                continue;
+            }
+
             $participantName = ucfirst(get_assessment_participant_name($assessment));
             $participantFirstName = ucfirst(get_assessment_participant_name($assessment, 'first'));
             
@@ -237,7 +244,22 @@ class AssessmentReportService
 
                 // Mark as generated
                 $assessment->pdf_status = 1;
+                if ($upgrade) {
+                    $assessment->upgraded_at = date('Y-m-d H:i:s');
+                }
                 $assessment->save();
+
+                // Old-layout report rebuilt in the current design: its own email, not the "report ready" ones.
+                if ($upgrade && $holdReport == false) {
+                    $sendTo = $assessment->user->user_email ?? '';
+                    if (!empty($sendTo)) {
+                        $folder = $override ? '/assessments/override/pdf/' : '/assessments/pdf/';
+                        Mail::send($sendTo, 'Report Upgrade - Your MyTemperament Report has been updated!', 'participant-report-upgrade-notification', [
+                            'participantName' => $participantFirstName,
+                            'downloadUrl'     => rtrim((string) get_settings_option('home'), '/') . $folder . $personalReportName,
+                        ]);
+                    }
+                }
             }else{
                 // Capture the version context so the alert email links to the correct (original/validated) chart.
                 $chartImageMissingAssessments[] = [

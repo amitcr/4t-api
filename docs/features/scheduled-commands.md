@@ -77,3 +77,7 @@ Full signatures: [reference/commands.md](../reference/commands.md).
 - [coupons-and-credits.md](coupons-and-credits.md) — the credit crons in depth
 - [emails.md](emails.md) — the reminder emails · [background-jobs-and-queue.md](background-jobs-and-queue.md)
 - [reference/commands.md](../reference/commands.md)
+
+## `payouts:sync-paypal`
+
+Every 15 minutes. The backup for the PayPal webhook (`POST /api/v1/webhooks/paypal`, `PayPalWebhookController`): reads the batch of every withdrawal in `processing` with a batch ID, and applies the result through `PayoutResultService`. It never sends money.

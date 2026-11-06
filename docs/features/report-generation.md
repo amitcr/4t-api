@@ -64,7 +64,7 @@ See [background-jobs-and-queue.md](background-jobs-and-queue.md) for the queue m
 2. **Idempotency:** if not an override and `pdf_status == 1` and the personal PDF file already exists, skip.
 3. **Chart-image gate:** require both `get_assessment_chart_image($id, …)` (the 3-chart) **and** the `single` chart to exist (version-aware). If either is missing, record the assessment in `chartImageMissingAssessments` and skip rendering it.
 4. Fetch the **Scoring Engine snapshot** (self result + responses + needs responses) — the same consolidated data the WP PDF template consumes.
-5. Render the **personal** report PDF (html2pdf) to `assessments/pdf/` (or `assessments/override/pdf/` for overrides), set `pdf_status = 1`.
+5. Render the **personal** report PDF (html2pdf; only the API generates reports, but images and fonts are read from P1's `templates/report/`) to `assessments/pdf/` (or `assessments/override/pdf/` for overrides), set `pdf_status = 1`.
 6. If the coupon enables it, generate the **manager** report (below) and send notification emails.
 7. After the loop, for every missing-chart assessment, send the **"Urgent: Assessment Charts are missing"** alert email (`assessment-images-missing` template), and **return the list of missing-chart assessment ids**.
 
@@ -149,3 +149,7 @@ WP releases held early when charts land (mytemp_release_held_report_jobs → ava
 - [background-jobs-and-queue.md](background-jobs-and-queue.md) — the queue + held/retry
 - [scoring-engine-proxy.md](scoring-engine-proxy.md) — the snapshot source
 - [emails.md](emails.md) — the generation emails · [reference/data-layer.md](../reference/data-layer.md)
+
+## Report upgrade
+
+P1's `mytemp_upgrade_report_template` queues `GenerateReportJob` with `upgrade`, `regenerate` and `suppress_emails` for reports completed before 2023-07-18. `generateReport()` rebuilds the PDF in the current layout, keeps the old file as `.bak-<date>`, sets `upgraded_at`, and sends `participant-report-upgrade-notification` unless the report is on hold. A report with `upgraded_at` set is skipped, so a repeated click does nothing.
