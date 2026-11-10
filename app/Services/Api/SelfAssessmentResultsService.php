@@ -10,7 +10,7 @@ use App\Services\Http\BaseHttpService;
  * SelfAssessmentResultsService
  *
  * GraphQL equivalents (developer guide §6.1, §6.2):
- *   list()    → listSelfAssessmentResults query
+ *   list()    → getParticipantSession { selfAssessmentResults } (the engine has no listSelfAssessmentResults)
  *   getById() → getSelfAssessmentResult query
  *
  * @since 2.0
@@ -19,29 +19,52 @@ class SelfAssessmentResultsService extends BaseHttpService
 {
     protected string $endpoint = 'self-assessment-results';
 
+    /**
+     * List the self-assessment results of one participant session.
+     *
+     * The scoring engine has no top-level listSelfAssessmentResults query and no
+     * result filter type: results are listed only through
+     * getParticipantSession(id) { selfAssessmentResults(limit, offset) }.
+     *
+     * @param array $query participantSessionId (required, remote session UUID), limit, offset (optional ints).
+     * @return object|null {total, offset, limit, data[]}, or null when the session id is missing,
+     *                     the session is not found, or the call fails (see getLastError()).
+     */
     public function list(array $query = [])
     {
-        $gql = 'query ListSelfAssessmentResults($filter: SelfAssessmentResultFilterInput, $paginate: PaginateInput) {
-            listSelfAssessmentResults(filter: $filter, paginate: $paginate) {
-                total
-                data {
-                    id
-                    socialRankedTemperaments historicalRankedTemperaments preferenceRankedTemperaments
-                    dMostCount dLeastCount dDiff
-                    iMostCount iLeastCount iDiff
-                    sMostCount sLeastCount sDiff
-                    cMostCount cLeastCount cDiff
+        $sessionId = trim((string) ($query['participantSessionId'] ?? ''));
+        if ($sessionId === '') {
+            return null;
+        }
+
+        $gql = 'query ListSessionSelfAssessmentResults($id: ID!, $limit: Int, $offset: Int) {
+            getParticipantSession(id: $id) {
+                selfAssessmentResults(limit: $limit, offset: $offset) {
+                    total offset limit
+                    data {
+                        id
+                        preferencePatternTitle
+                        socialRankedTemperaments historicalRankedTemperaments preferenceRankedTemperaments
+                        dMostCount dLeastCount dDiff
+                        iMostCount iLeastCount iDiff
+                        sMostCount sLeastCount sDiff
+                        cMostCount cLeastCount cDiff
+                    }
                 }
             }
         }';
 
-        $variables = [];
-
-        if (!empty($query['graderId'])) {
-            $variables['filter'] = ['graderId' => ['eq' => $query['graderId']]];
+        $variables = ['id' => $sessionId];
+        if (isset($query['limit']) && is_numeric($query['limit'])) {
+            $variables['limit'] = (int) $query['limit'];
+        }
+        if (isset($query['offset']) && is_numeric($query['offset'])) {
+            $variables['offset'] = (int) $query['offset'];
         }
 
-        return $this->graphqlClient->graphql($gql, $variables);
+        $res = $this->graphqlClient->graphql($gql, $variables);
+
+        return $res->getParticipantSession->selfAssessmentResults ?? null;
     }
 
     public function getById($id, $query = [])
@@ -49,6 +72,7 @@ class SelfAssessmentResultsService extends BaseHttpService
         $gql = 'query GetSelfAssessmentResult($id: ID!) {
             getSelfAssessmentResult(id: $id) {
                 id
+                preferencePatternTitle
                 socialRankedTemperaments historicalRankedTemperaments preferenceRankedTemperaments
                 dMostCount dLeastCount dDiff
                 iMostCount iLeastCount iDiff

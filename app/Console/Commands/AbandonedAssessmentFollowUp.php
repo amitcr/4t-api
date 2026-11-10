@@ -143,11 +143,30 @@ class AbandonedAssessmentFollowUp implements CommandInterface
                     "ContactID"    =>  $contactId
                 ];
 
-                $assessmentResults = $this->selfAssessmentResultsService->getById($assessment->assessment_result_id);
+                // GraphQL returns the `data` object, so the result is under getSelfAssessmentResult
+                // and its fields are top-level (not under ->details as in the old REST response).
+                $assessmentResults = !empty($assessment->assessment_result_id)
+                    ? ($this->selfAssessmentResultsService->getById($assessment->assessment_result_id)->getSelfAssessmentResult ?? null)
+                    : null;
                 if(!empty($assessmentResults) && isset($assessmentResults->id)){
-                    $contactData["Data"][] = ["Name"  =>  "pattern", "Value"  => strtoupper($assessmentResults->details->preferencePatternTitle)];
-                    $contactData["Data"][] = ["Name"  =>  "primary", "Value"  => ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[0]))];
-                    $contactData["Data"][] = ["Name"  =>  "secondary", "Value"  => ucwords(strtolower($assessmentResults->details->preferenceRankedTemperaments[1]))];
+                    $ranked = (array) ($assessmentResults->preferenceRankedTemperaments ?? []);
+                    if(!empty($assessmentResults->preferencePatternTitle)){
+                        $contactData["Data"][] = ["Name"  =>  "pattern", "Value"  => strtoupper($assessmentResults->preferencePatternTitle)];
+                    }
+                    // Ranked temperaments are DISC letters (D/I/S/C); Mailjet gets the name (e.g. "Sanguine").
+                    $primary   = mytemp_temperament_parts($ranked[0] ?? '')['name'];
+                    $secondary = mytemp_temperament_parts($ranked[1] ?? '')['name'];
+                    if($primary !== ''){
+                        $contactData["Data"][] = ["Name"  =>  "primary", "Value"  => $primary];
+                    }
+                    if($secondary !== ''){
+                        $contactData["Data"][] = ["Name"  =>  "secondary", "Value"  => $secondary];
+                    }
+                }else{
+                    Logger::warning('Follow-up: no self-assessment result for pattern/primary/secondary', [
+                        'assessment_id' => $assessment->assessment_id,
+                        'error'         => $this->selfAssessmentResultsService->getLastError(),
+                    ]);
                 }
 
                 $post = PostModel::find(get_settings_option('mytemp_settings.mytemp_mini_report'));
