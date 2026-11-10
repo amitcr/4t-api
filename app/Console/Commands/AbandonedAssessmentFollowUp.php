@@ -14,7 +14,7 @@ use App\Services\Mailjet\ContactsService;
 use App\Services\Mailjet\ContactDataService;
 use App\Services\Mailjet\ContactListService;
 use App\Services\Mailjet\ManageContactListService;
-use App\Services\Api\SelfAssessmentResultsService;
+use App\Services\Api\ParticipantSessionsService;
 use App\Core\Logger;
 use App\Core\Config;
 use Carbon\Carbon;
@@ -27,7 +27,7 @@ class AbandonedAssessmentFollowUp implements CommandInterface
 
     protected $contactService;
     protected $manageContactListService;
-    protected $selfAssessmentResultsService;
+    protected $participantSessionsService;
     protected $secondaryListId;
     protected $contactDataService;
 
@@ -35,7 +35,7 @@ class AbandonedAssessmentFollowUp implements CommandInterface
         $this->contactService = new ContactsService();
         $this->contactDataService = new ContactDataService();
         $this->manageContactListService = new ManageContactListService();
-        $this->selfAssessmentResultsService = new SelfAssessmentResultsService();
+        $this->participantSessionsService = new ParticipantSessionsService();
 
         $this->secondaryListId = get_settings_option('mytemp_settings.assessment_abandoned_secondary_list_id');
     }
@@ -143,11 +143,12 @@ class AbandonedAssessmentFollowUp implements CommandInterface
                     "ContactID"    =>  $contactId
                 ];
 
-                // GraphQL returns the `data` object, so the result is under getSelfAssessmentResult
-                // and its fields are top-level (not under ->details as in the old REST response).
-                $assessmentResults = !empty($assessment->assessment_result_id)
-                    ? ($this->selfAssessmentResultsService->getById($assessment->assessment_result_id)->getSelfAssessmentResult ?? null)
+                // Results come from the participant session, the same snapshot the PDF report uses
+                // (assessment_result_id is empty on new rows).
+                $snapshot = !empty($assessment->session_id)
+                    ? $this->participantSessionsService->getPDFReportSnapshot((string) $assessment->session_id)
                     : null;
+                $assessmentResults = $snapshot->selfAssessmentResults->data[0] ?? null;
                 if(!empty($assessmentResults) && isset($assessmentResults->id)){
                     $ranked = (array) ($assessmentResults->preferenceRankedTemperaments ?? []);
                     if(!empty($assessmentResults->preferencePatternTitle)){
@@ -165,7 +166,8 @@ class AbandonedAssessmentFollowUp implements CommandInterface
                 }else{
                     Logger::warning('Follow-up: no self-assessment result for pattern/primary/secondary', [
                         'assessment_id' => $assessment->assessment_id,
-                        'error'         => $this->selfAssessmentResultsService->getLastError(),
+                        'session_id'    => $assessment->session_id,
+                        'error'         => $this->participantSessionsService->getLastError(),
                     ]);
                 }
 
