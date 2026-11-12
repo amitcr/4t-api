@@ -167,17 +167,19 @@ class AuthController
         $email = $request->input('email');
         $password = $request->input('password');
 
-        $user = User::where('user_email', $email)->first();
+        $user = UserModel::where('user_email', $email)->first();
         // if (!$user || !password_verify($password, $user->user_pass)) {
         //     return ['error' => 'Password Invalid credentials'];
         // }
 
+        // Unknown email and soft-deleted account (user_status = 2) get the same answer as a
+        // wrong password, as on the WordPress login, so the reply doesn't reveal either.
         $wp_hasher = new PasswordHash(8, true); // same params as WP
-        if (!$wp_hasher->checkPassword($password, $user->user_pass)) {
+        if (!$user || (int) $user->user_status === 2 || !$wp_hasher->checkPassword((string) $password, $user->user_pass)) {
             return ['error' => 'Invalid credentials'];
         }
 
-        $participant = Participant::where('user_id', $user->ID)->first();
+        $participant = ParticipantModel::where('user_id', $user->ID)->first();
         if (!$participant) {
             return ['error' => 'Participant not found'];
         }
@@ -294,6 +296,14 @@ class AuthController
 
         if (!$user || !$participant) {
             return Response::json(['error' => 'Invalid session user/participant'], 401);
+        }
+
+        // Soft-deleted account: end this session instead of issuing a new access token.
+        if ((int) $user->user_status === 2) {
+            $session->expires_at = Carbon::now();
+            $session->refresh_expires_at = Carbon::now();
+            $session->save();
+            return Response::json(['error' => 'Invalid or expired refresh token'], 401);
         }
 
         // Generate new access token
