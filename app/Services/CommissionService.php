@@ -82,7 +82,8 @@ class CommissionService
             'reference_type'  => 'assessment',
             'reference_id'    => $row->assessment_id,
             'idempotency_key' => 'commission_' . $row->id,
-            'public_note'     => 'Commission of $' . CreditLedgerService::normalise($amount) . ' for assessment #' . $row->assessment_id . ' added to your balance after the hold period.',
+            'public_note'     => 'Commission of $' . number_format($amount, 2) . ' for ' . $this->subject((int) $row->assessment_id) . ' added to your balance after the hold period.',
+            'admin_note'      => 'Assessment #' . $row->assessment_id . '.',
             'source'          => 'api_cron',
         ], [
             'inside' => function (array $result) use ($row) {
@@ -173,7 +174,7 @@ class CommissionService
     /** Refund during the hold: the commission never reaches the balance. */
     private function cancel(object $row, string $refundRef, string $source, int $actorUserId): string
     {
-        $amount = CreditLedgerService::normalise($row->commission_amount);
+        $amount = number_format((float) $row->commission_amount, 2);
 
         $result = CreditLedgerService::post('affiliate', (int) $row->commission_affiliate_id, [
             'bucket'          => 'earnings',
@@ -183,8 +184,8 @@ class CommissionService
             'reference_type'  => 'assessment',
             'reference_id'    => $row->assessment_id,
             'idempotency_key' => 'commission_cancel_' . $row->id,
-            'public_note'     => 'A refund was requested for assessment #' . $row->assessment_id . ', so the commission of $' . $amount . ' on hold was cancelled. Your balance did not change.',
-            'admin_note'      => 'Refund ' . $refundRef . ' (' . $source . ').',
+            'public_note'     => 'A refund was given for ' . $this->subject((int) $row->assessment_id) . ', so the commission of $' . $amount . ' on hold was cancelled. Your balance did not change.',
+            'admin_note'      => 'Assessment #' . $row->assessment_id . '. Refund ' . $refundRef . ' (' . $source . ').',
             'source'          => $source,
             'actor_user_id'   => $actorUserId ?: null,
         ], [
@@ -224,8 +225,8 @@ class CommissionService
             'reference_type'  => 'assessment',
             'reference_id'    => $row->assessment_id,
             'idempotency_key' => 'commission_reversal_' . $row->id,
-            'public_note'     => 'Assessment #' . $row->assessment_id . ' was refunded, so its commission of $' . CreditLedgerService::normalise($amount) . ' was taken back from your balance.',
-            'admin_note'      => 'Refund ' . $refundRef . ' (' . $source . '). Reverses ledger entry #' . $entry->entry_id . '.',
+            'public_note'     => 'A refund was given for ' . $this->subject((int) $row->assessment_id) . ', so its commission of $' . number_format($amount, 2) . ' was taken back from your balance.',
+            'admin_note'      => 'Assessment #' . $row->assessment_id . '. Refund ' . $refundRef . ' (' . $source . '). Reverses ledger entry #' . $entry->entry_id . '.',
             'source'          => $source,
             'actor_user_id'   => $actorUserId ?: null,
         ], [
@@ -265,6 +266,31 @@ class CommissionService
         }
 
         return ($entry && (float) $entry->amount > 0) ? $entry : null;
+    }
+
+    /**
+     * Whose assessment a commission is for, for the affiliate's notes: "John Smith's assessment
+     * (code AFFCP01-9)". Affiliates never see the assessment ID (it goes in the admin note).
+     * Same wording as affcp_commission_subject() in wp-affiliates-coupons; keep the two in step.
+     */
+    public function subject(int $assessmentId): string
+    {
+        $assessment = DB::table('mytemp_assessments')->where('assessment_id', $assessmentId)->first(['first_name', 'last_name', 'user_id']);
+
+        $name = $assessment ? trim(trim((string) $assessment->first_name) . ' ' . trim((string) $assessment->last_name)) : '';
+        if ($name === '' && $assessment && $assessment->user_id) {
+            $name = trim((string) DB::table('users')->where('ID', $assessment->user_id)->value('display_name'));
+        }
+
+        $code = (string) DB::table('affcp_coupons_tracking as t')
+            ->join('affcp_wp_coupons as c', 'c.coupon_id', '=', 't.coupon_id')
+            ->where('t.assessment_id', $assessmentId)
+            ->orderByDesc('t.id')
+            ->value('c.coupon_code');
+
+        $subject = $name !== '' ? $name . "'s assessment" : "a participant's assessment";
+
+        return $code !== '' ? $subject . ' (code ' . $code . ')' : $subject;
     }
 
     private function now(): string
