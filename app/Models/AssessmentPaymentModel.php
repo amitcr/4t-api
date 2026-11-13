@@ -24,6 +24,11 @@ class AssessmentPaymentModel extends BaseModel
         'payment_method',
         'end_price',
         'payment_datetime',
+        // Plugin 1 1.0.28: a refunded payment keeps status 'captured' (report access stays).
+        'refund_status',
+        'refund_id',
+        'refund_amount',
+        'refund_datetime',
     ];
 
     public function assessment(): BelongsTo

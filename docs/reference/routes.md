@@ -13,6 +13,8 @@ Route groups accept `prefix`, `controller`, and `middleware` keys. A stub `/v2` 
 | `GET /v1/health` | `HealthController::index` | `RateLimitMiddleware` (120/min/IP) |
 | `GET /v1/users/{id}` | inline closure (echo id) | — |
 | `GET /v1/protected/secret` | `ProtectedController::secret` | `JwtMiddleware` |
+| `POST /v1/webhooks/paypal` | `PayPalWebhookController::handle` (payouts + `PAYMENT.CAPTURE.REFUNDED/REVERSED`) | `RateLimitMiddleware`; PayPal signature checked |
+| `POST /v1/webhooks/stripe` | `StripeWebhookController::handle` (`charge.refunded`, `charge.dispute.funds_withdrawn`) | `RateLimitMiddleware`; Stripe signature (P1 setting `stripe_webhook_secret`, fallback `STRIPE_WEBHOOK_SECRET`) |
 
 ---
 

@@ -8,7 +8,8 @@ use RuntimeException;
  * Reads PayPal Payouts results and checks webhook signatures, with the PayPal app saved in Plugin 1's
  * settings (mytemp_settings). The webhook IDs are in Plugin 2's (affcp_settings).
  *
- * Sends no money: payouts are sent from WordPress, by an admin.
+ * Sends no money: payouts are sent from WordPress, by an admin. Also reads assessment payment
+ * captures, to confirm refund webhooks (RefundService).
  */
 class PayPalPayoutsService
 {
@@ -61,6 +62,26 @@ class PayPalPayoutsService
 
         if ($response->getStatusCode() !== 200 || !is_array($body)) {
             throw new RuntimeException('PayPal answered HTTP ' . $response->getStatusCode() . ' for a batch.');
+        }
+
+        return $body;
+    }
+
+    /**
+     * An assessment payment capture (Orders v2) as PayPal reports it, to confirm a refund webhook.
+     *
+     * @throws RuntimeException When PayPal cannot be read.
+     */
+    public function getCapture(string $captureId): array
+    {
+        $response = $this->client->request('GET', $this->config()['url'] . '/v2/payments/captures/' . rawurlencode($captureId), [
+            'headers' => ['Authorization' => 'Bearer ' . $this->token(), 'Content-Type' => 'application/json'],
+        ]);
+
+        $body = json_decode((string) $response->getBody(), true);
+
+        if ($response->getStatusCode() !== 200 || !is_array($body)) {
+            throw new RuntimeException('PayPal answered HTTP ' . $response->getStatusCode() . ' for a capture.');
         }
 
         return $body;

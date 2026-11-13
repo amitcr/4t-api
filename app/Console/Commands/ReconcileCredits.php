@@ -3,7 +3,9 @@ namespace App\Console\Commands;
 
 use App\Core\CommandInterface;
 use App\Core\Logger;
+use App\Services\CommissionService;
 use App\Services\CreditLedgerService;
+use Carbon\Carbon;
 use Illuminate\Database\Capsule\Manager as DB;
 
 /**
@@ -52,6 +54,23 @@ class ReconcileCredits implements CommandInterface
             if ($stored !== $newest) {
                 $differences++;
                 $message = "credits:reconcile: {$row->account_type} #{$row->account_id} {$row->bucket}: balance column {$stored}, newest ledger entry {$newest}";
+                Logger::warning($message);
+                echo $message . PHP_EOL;
+            }
+        }
+
+        // Held commissions more than a day past their release time: commissions:release is not running
+        // or keeps failing on them.
+        if (DB::schema()->hasColumn(CommissionService::TABLE, 'commission_release_at')) {
+            $overdue = DB::table(CommissionService::TABLE)
+                ->where('transfer_status', 'pending')
+                ->whereNull('refund_status')
+                ->where('commission_release_at', '<', Carbon::now('UTC')->subDay()->format('Y-m-d H:i:s'))
+                ->count();
+
+            if ($overdue > 0) {
+                $differences++;
+                $message = "credits:reconcile: {$overdue} held commission(s) are more than a day past their release time; check commissions:release.";
                 Logger::warning($message);
                 echo $message . PHP_EOL;
             }

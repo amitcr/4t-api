@@ -18,6 +18,8 @@ Every `artisan` command, from `app/Console/Kernel.php` (`commands()` registers t
 | `assessments:sync-stats` | `ExportAssessmentStats` | daily 06:05 | Export stats to Google Sheets |
 | `coupons:resync-usage-count` | `ResyncCouponUsageCount` | daily 06:10 | Recompute cached `usage_count` from tracking rows |
 | `credits:reconcile` | `ReconcileCredits` | daily 06:15 | Report balances that differ from the newest ledger entry (changes nothing) |
+| `commissions:release` | `ReleaseCommissions` | every 15 min | Add held commissions to earnings when their hold ends |
+| `commissions:backfill-refunds` | `BackfillRefunds` | manual, one-time | Record past refunds from a CSV of charge IDs; dry run unless `apply=1` |
 | `emails:mini-usage-reminder` | `MiniUsageReminder` | daily 16:05 | Mini-report usage running low |
 
 Details: [../features/scheduled-commands.md](../features/scheduled-commands.md), [../features/coupons-and-credits.md](../features/coupons-and-credits.md), [../features/emails.md](../features/emails.md).
@@ -50,6 +52,8 @@ php artisan queue:work                   # start the worker (keep running)
 php artisan coupons:expire-status        # run a single command manually
 php artisan coupons:resync-usage-count   # post-deploy usage_count backfill
 php artisan credits:reconcile            # report balance vs. ledger differences (read-only)
+php artisan commissions:backfill-refunds file=/path/refunds.csv          # dry run
+php artisan commissions:backfill-refunds file=/path/refunds.csv apply=1  # record + reverse
 ```
 
 ---

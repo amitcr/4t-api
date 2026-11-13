@@ -63,6 +63,11 @@ class PayoutResultService
                 return [400, ['error' => 'Invalid signature.']];
             }
 
+            // A refunded / reversed assessment payment (PayPal Express, Venmo): same app, same webhook.
+            if (str_starts_with((string) ($event['event_type'] ?? ''), 'PAYMENT.CAPTURE.')) {
+                return (new RefundService())->handlePayPalCaptureEvent($event, $this->paypal);
+            }
+
             if (!str_starts_with((string) ($event['event_type'] ?? ''), 'PAYMENT.PAYOUTS')) {
                 return [200, ['result' => 'ignored']];
             }

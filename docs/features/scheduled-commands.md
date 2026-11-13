@@ -39,6 +39,7 @@ From `Kernel::schedule()` (all times UTC):
 | `assessments:sync-stats` | daily 06:05 | `ExportAssessmentStats` |
 | `coupons:resync-usage-count` | daily 06:10 | `ResyncCouponUsageCount` |
 | `credits:reconcile` | daily 06:15 | `ReconcileCredits` |
+| `commissions:release` | every 15 min | `ReleaseCommissions` |
 | `emails:mini-usage-reminder` | daily 16:05 | `MiniUsageReminder` |
 
 `queue:work` (`QueueWorkerCommand`) is registered too but is **not scheduled** — it runs as a separate persistent process ([background-jobs-and-queue.md](background-jobs-and-queue.md)).
@@ -81,3 +82,11 @@ Full signatures: [reference/commands.md](../reference/commands.md).
 ## `payouts:sync-paypal`
 
 Every 15 minutes. The backup for the PayPal webhook (`POST /api/v1/webhooks/paypal`, `PayPalWebhookController`): reads the batch of every withdrawal in `processing` with a batch ID, and applies the result through `PayoutResultService`. It never sends money.
+
+## `commissions:release`
+
+Every 15 minutes. Adds held affiliate commissions to earnings once `commission_release_at` has passed (`CommissionService::releaseDue()`): ledger `transfer` with key `commission_<relationship id>`, row `pending → success` in the same transaction. Rows whose payment was refunded were already cancelled and are skipped. `credits:reconcile` warns when held commissions are more than a day overdue.
+
+## Refunds (not scheduled)
+
+`RefundService` records a refunded assessment payment (payment `refund_*` columns + a `refund` transaction; status stays `captured`) and calls `CommissionService::onRefund()`: cancel while on hold, reverse after release (may leave a negative balance). Reached from `POST /api/v1/webhooks/stripe` (`charge.refunded`, `charge.dispute.funds_withdrawn`; signing secret from Plugin 1 Settings > Payments `stripe_webhook_secret`, fallback `STRIPE_WEBHOOK_SECRET` in `.env`), `PAYMENT.CAPTURE.REFUNDED/REVERSED` on the PayPal webhook, and `ProcessRefundJob` (queued by WordPress for the PayPal Standard IPN and the admin "Mark as refunded" button). Partial refunds are logged and ignored (refunds are always full). Past refunds: `php artisan commissions:backfill-refunds file=/path.csv` (dry run) then add `apply=1`.
